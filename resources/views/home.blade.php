@@ -2,16 +2,29 @@
 
 @section('content')
 <div class="container" style="max-width: 600px;">
-    <div class="card mb-4 border-0 border-bottom">
+    @guest
+        <div class="alert alert-light border shadow-sm mb-4 d-flex justify-content-between align-items-center">
+            <span>Chào mừng bạn đến với W-Social!</span>
+            <div>
+                <a href="{{ route('login') }}" class="btn btn-sm btn-outline-primary me-2">Đăng nhập</a>
+                @if (Route::has('register'))
+                    <a href="{{ route('register') }}" class="btn btn-sm btn-primary">Đăng ký</a>
+                @endif
+            </div>
+        </div>
+    @endguest
+
+    <div class="card mb-4 border-0 border-bottom shadow-sm">
         <div class="card-body d-flex">
-            <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
-                <i class="fa-solid fa-user fa-xl text-secondary" style="line-height: 50px; margin-left: 15px;"></i>
+            <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-user fa-xl text-secondary"></i>
             </div>
             <div class="w-100">
-                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ Auth::user()->display_name ?? 'Đào' }}?">
+                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" 
+                       placeholder="Bạn đang nghĩ gì, {{ Auth::check() ? Auth::user()->display_name : 'Đào' }}?">
                 <div class="mt-2 d-flex gap-3 text-primary">
-                    <small><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
-                    <small><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
+                    <small role="button"><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
+                    <small role="button"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
                 </div>
             </div>
         </div>
@@ -60,5 +73,13 @@
 @endsection
 
 @section('suggestions')
-    <p class="px-2 text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
+    <div class="p-3">
+        @auth
+            <div class="mb-4">
+                <a href="{{ url('/dashboard') }}" class="btn btn-primary w-100">Đến Bảng điều khiển</a>
+            </div>
+        @endauth
+        
+        <p class="text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
+    </div>
 @endsection
