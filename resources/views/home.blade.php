@@ -2,19 +2,59 @@
 
 @section('content')
 <div class="container" style="max-width: 600px;">
-    <div class="card mb-4 border-0 border-bottom">
-        <div class="card-body d-flex">
-            <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
-                <i class="fa-solid fa-user fa-xl text-secondary" style="line-height: 50px; margin-left: 15px;"></i>
-            </div>
-            <div class="w-100">
-                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ Auth::user()->display_name ?? 'Đào' }}?">
-                <div class="mt-2 d-flex gap-3 text-primary">
-                    <small><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
-                    <small><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
-                </div>
-            </div>
+    {{-- ======================================================= --}}
+    {{-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG (NẾU CÓ)                  --}}
+    {{-- ======================================================= --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" style="border-radius: 15px;" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+    @endif
+
+    {{-- ======================================================= --}}
+    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH (GẮN VỚI BACKEND CỦA TV3)  --}}
+    {{-- ======================================================= --}}
+    <div class="card mb-4 border-0 border-bottom">
+        {{-- ... Nội dung form giữ nguyên ... --}}
+  {{-- BẮT ĐẦU: KHUNG ĐĂNG BÀI NHANH ĐÃ GẮN BACKEND CỦA TV3 --}}
+    <div class="card mb-4 border-0 border-bottom">
+        <div class="card-body">
+            {{-- Form trỏ về hàm store của Thanh --}}
+            <form action="{{ route('posts3.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="d-flex">
+                    <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
+                        <i class="fa-solid fa-user fa-xl text-secondary" style="line-height: 50px; margin-left: 15px;"></i>
+                    </div>
+                    <div class="w-100">
+                        {{-- Ô nhập nội dung bắt buộc --}}
+                        <input type="text" name="content" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ Auth::user()->display_name ?? 'Đào' }}?" required>
+                        
+                        {{-- Ẩn quyền riêng tư mặc định --}}
+                        <input type="hidden" name="visibility" value="public">
+                        
+                        <div class="mt-3 d-flex justify-content-between align-items-center">
+                            <div class="d-flex gap-3 text-primary">
+                                {{-- Nút tải ảnh (Ẩn thẻ input file, dùng thẻ label để bấm) --}}
+                                <label for="homePostImage" class="mb-0" style="cursor: pointer;">
+                                    <small><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
+                                </label>
+                                <input type="file" name="image" id="homePostImage" class="d-none" accept="image/*">
+                                
+                                <small style="cursor: pointer;"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
+                            </div>
+                            
+                            {{-- Nút Submit --}}
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Đăng</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {{-- KẾT THÚC: KHUNG ĐĂNG BÀI NHANH --}}
     </div>
 
     <h5 class="fw-bold mb-4">Dành cho bạn</h5>
