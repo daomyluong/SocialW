@@ -1,27 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\SearchController;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::middleware('web')->group(function (): void {
+    require __DIR__.'/web/tv1_home_search.php';
+    require __DIR__.'/web/tv2_auth_profile.php';
+    require __DIR__.'/web/tv3_posts.php';
+    require __DIR__.'/web/tv4_social.php';
+    require __DIR__.'/web/tv6_messages.php';
+    require __DIR__.'/web/tv5_admin.php';
 });
-
-// TV 1 (ĐÀO) - HẠ TẦNG, TRANG CHỦ & TÌM KIẾM
-Route::get('/', function () {
-    return view('home'); 
-})->name('home');
-
-Route::get('/search', function () {
-    return "Trang tìm kiếm";
-})->name('search');
-
-// TV 2 (LOAN) - NGƯỜI DÙNG (AUTH & PROFILE)
-Route::get('/profile', function () {
-    return "Trang profile";
-})->name('profile');
-
-// TV 3 (THANH) - BÀI VIẾT (POSTS)
-// TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
-// TV 5 (LINH) - QUẢN TRỊ (ADMIN)
