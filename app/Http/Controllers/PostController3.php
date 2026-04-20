@@ -55,7 +55,7 @@ public function store(Request $request)
         }
 
         // Chuyển hướng về trang danh sách bài viết của tôi
-        return redirect()->route('posts3.myPosts')->with('success', 'Chúc mừng! Bài viết của bạn đã được đăng thành công.');
+        return redirect()->route('home')->with('success', 'Chúc mừng! Bài viết của bạn đã hiển thị trên bảng tin.');
 
     } catch (\Exception $e) {
         // Nếu có lỗi thì quay lại và hiện thông báo lỗi
