@@ -60,5 +60,46 @@
 @endsection
 
 @section('suggestions')
-    <p class="px-2 text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
+    <div class="px-2">
+        <h6 class="fw-bold text-secondary mb-3">Gợi ý cho bạn</h6>
+        @if(isset($suggestedUsers) && $suggestedUsers->count() > 0)
+            <div class="d-flex flex-column gap-3">
+                @foreach($suggestedUsers as $user)
+                    <div class="d-flex align-items-center justify-content-between">
+                        
+                        <div class="d-flex align-items-center">
+                            {{-- Sử dụng ảnh avatar mẫu hoặc avatar thật từ DB --}}
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
+                                 class="rounded-circle me-2" 
+                                 width="40" height="40" 
+                                 alt="{{ $user->username }}">
+                            
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                    {{ $user->username }}
+                                </span>
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    {{ $user->display_name }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            {{-- Tái sử dụng component nút Follow của bạn, hoặc dùng trực tiếp Form ở đây --}}
+                            <form action="{{ route('users.follow', $user->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">
+                                    Theo dõi
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                @endforeach
+            </div>
+        @else
+            {{-- Hiển thị nếu không có dữ liệu hoặc đã follow hết mọi người --}}
+            <p class="text-muted small">Hiện chưa có gợi ý mới nào.</p>
+        @endif
+    </div>
 @endsection
