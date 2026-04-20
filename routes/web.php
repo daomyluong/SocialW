@@ -1,8 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\HomeController4;
 use App\Http\Controllers\SearchController;
+
 use App\Http\Controllers\ProfileController;
 use App\Models\User;
 
@@ -10,6 +11,15 @@ use App\Models\User;
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+use App\Http\Controllers\PostController3;
+use App\Http\Controllers\InteractionController4;
+use App\Http\Controllers\AdminController5;
+
+
+Route::get('/welcome', function () {
+    return view('welcome');
+});
 
 // TV 1 (ĐÀO) - HẠ TẦNG, TRANG CHỦ & TÌM KIẾM
 Route::get('/', function () {
@@ -39,6 +49,74 @@ Route::get('/profile/{id}', [ProfileController::class, 'show'])
     ->whereNumber('id')
     ->name('profile.show');
 // TV 3 (THANH) - BÀI VIẾT (POSTS)
+    // Đường dẫn để hiện form đăng bài
+    Route::get('/posts/create', [PostController3::class, 'create'])->name('posts3.create');
+    
+    // Đường dẫn để xử lý lưu dữ liệu
+    Route::post('/posts/store', [PostController3::class, 'store'])->name('posts3.store');
+    // Đường dẫn xem bài viết của riêng tôi
+Route::get('/my-posts', [PostController3::class, 'myPosts'])->name('posts3.myPosts');
+    // Route xóa bài viết
+Route::delete('/posts/{id}', [PostController3::class, 'destroy'])->name('posts3.destroy');
+    // Route Sửa - 1: Mở trang sửa (Cần file edit3.blade.php sau này)
+Route::get('/posts/{id}/edit', [PostController3::class, 'edit'])->name('posts3.edit');
+    // Route Sửa - 2: Lưu dữ liệu (Không cần file giao diện)
+Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
+
+Route::get('/', [PostController3::class, 'index'])->name('home');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
+
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
 require __DIR__.'/auth.php';
+
+    // Like
+    Route::post('/posts/{post}/like', [InteractionController4::class, 'like'])->name('posts.like');
+
+    // Comment
+    Route::post('/posts/{post}/comments', [InteractionController4::class, 'comment'])->name('comments.store');
+    Route::delete('/comments/{comment}', [InteractionController4::class, 'destroyComment'])->name('comments.destroy');
+
+    // Share
+    Route::post('/posts/{post}/share', [InteractionController4::class, 'share'])->name('posts.share');
+    // Follow
+    Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
+    Route::get('/suggestions', [HomeController4::class, 'allSuggestions'])->name('users.suggestions');
+    
+    // xem thêm bình luận
+    Route::get('/posts/{post}/load-more-comments', [InteractionController4::class, 'show'])->name('comments.show');
+
+
+// TV 5 (LINH) - QUẢN TRỊ (ADMIN)
+
+// Route tạm thời để test giao diện
+Route::get('/admin_test', [AdminController5::class, 'testLayout']);
+// Gom nhóm các trang admin lại cho chuyên nghiệp
+Route::prefix('admin')->group(function () {
+    
+    // 1. TRANG DASHBOARD THẬT 
+    Route::get('/dashboard', [AdminController5::class, 'dashboard'])->name('admin.dashboard');
+
+    // 2. QUẢN LÝ NGƯỜI DÙNG 
+    Route::get('/users', [AdminController5::class, 'manageUsers'])->name('admin.users.index');
+    // Route xử lý Khóa/Mở khóa tài khoản (Dùng POST để bảo mật)
+    Route::post('/users/{id}/toggle-status', [AdminController5::class, 'toggleUserStatus'])->name('admin.users.toggle_status');
+    // Route xử lý Xóa mềm tài khoản
+    Route::post('/users/{id}/delete', [AdminController5::class, 'deleteUser'])->name('admin.users.delete');
+    
+    // 3. QUẢN LÝ BÀI VIẾT 
+    Route::get('/posts', [AdminController5::class, 'managePosts'])->name('admin.posts.index');
+    Route::post('/posts/{id}/delete', [AdminController5::class, 'deletePost'])->name('admin.posts.delete');
+
+    // 4. QUẢN LÝ BÌNH LUẬN (COMMENTS)
+    Route::get('/comments', [AdminController5::class, 'manageComments'])->name('admin.comments.index');
+    Route::post('/comments/{id}/delete', [AdminController5::class, 'deleteComment'])->name('admin.comments.delete');
+    Route::post('/comments/quick-ban/{userId}', [AdminController5::class, 'quickBanUser'])->name('admin.comments.quick_ban');
+
+    // 5. QUẢN LÝ BÁO CÁO (REPORTS)
+    Route::get('/reports', [AdminController5::class, 'manageReports'])->name('admin.reports.index');
+    // Route xử lý thao tác (Phán quyết) của Admin
+    Route::post('/reports/process', [AdminController5::class, 'processReport'])->name('admin.reports.process');
+});
+// Giữ lại cái tên 'home' này để nút "Quay lại W-Social" không bị lỗi
+// (Khi nào Leader làm xong trang chủ thì mình sẽ xóa dòng này đi sau)
+//Route::get('/home-test', function () { return "Đây là trang chủ"; })->name('home');
