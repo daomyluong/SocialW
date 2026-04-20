@@ -157,4 +157,26 @@ public function store(Request $request)
     // Trả về file home của Lead, kèm theo biến $posts của bạn
     return view('home', compact('posts'));
 }
+    public function notifications()
+{
+    $userId = 1; 
+
+    // Lấy tất cả thông báo của User 
+    $notifications = \App\Models\Notification::where('user_id', $userId)
+                        ->latest()
+                        ->get();
+
+    // Khi người dùng vào trang này, chúng ta coi như họ đã đọc hết
+    \App\Models\Notification::where('user_id', $userId)->update(['is_read' => 1]);
+
+    return view('posts3.notifications3', compact('notifications'));
+}
+public function show($id)
+{
+    // Tìm bài viết theo ID
+    $post = \App\Models\Post::with('media')->findOrFail($id);
+
+    // Trả về view chi tiết  
+    return view('posts3.show3', compact('post'));
+}
 }

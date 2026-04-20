@@ -32,6 +32,11 @@ Route::get('/profile', function () {
     Route::post('/posts/store', [PostController3::class, 'store'])->name('posts3.store');
     // Đường dẫn xem bài viết của riêng tôi
 Route::get('/my-posts', [PostController3::class, 'myPosts'])->name('posts3.myPosts');
+
+
+// Route để XEM chi tiết bài viết (Phương thức GET)
+Route::get('/posts/{id}', [PostController3::class, 'show'])->name('posts3.show');
+
     // Route xóa bài viết
 Route::delete('/posts/{id}', [PostController3::class, 'destroy'])->name('posts3.destroy');
     // Route Sửa - 1: Mở trang sửa (Cần file edit3.blade.php sau này)
@@ -40,6 +45,8 @@ Route::get('/posts/{id}/edit', [PostController3::class, 'edit'])->name('posts3.e
 Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
 
 Route::get('/', [PostController3::class, 'index'])->name('home');
+   // Route xem danh sách thông báo
+Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 
 
