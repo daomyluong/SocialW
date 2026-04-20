@@ -1,6 +1,6 @@
 @props(['userId', 'isFollowing' => false])
 
-@if(auth()->id() !== $userId) {{-- Không cho phép tự follow chính mình --}}
+@if(auth()->id() !== $userId) 
     <form action="{{ route('users.follow', $userId) }}" method="POST">
         @csrf
         <button type="submit" 

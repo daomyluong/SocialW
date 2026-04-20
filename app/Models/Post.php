@@ -26,5 +26,10 @@ class Post extends Model
     public function media() {
         return $this->belongsToMany(Media::class, 'post_media', 'post_id', 'media_id');
     }
+
+    // 5. Một bài viết có nhiều bình luận
+    public function comments() {
+        return $this->hasMany(Comment4::class, 'post_id');
+    }
     
 }

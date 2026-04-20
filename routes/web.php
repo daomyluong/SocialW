@@ -41,9 +41,6 @@ Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.upda
 
 Route::get('/', [PostController3::class, 'index'])->name('home');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
-
-
-Route::middleware(['auth'])->group(function () {
     // Like
     Route::post('/posts/{post}/like', [InteractionController4::class, 'like'])->name('posts.like');
 
@@ -51,7 +48,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/posts/{post}/comments', [InteractionController4::class, 'comment'])->name('comments.store');
     Route::delete('/comments/{comment}', [InteractionController4::class, 'destroyComment'])->name('comments.destroy');
 
+    // Share
+    Route::post('/posts/{post}/share', [InteractionController4::class, 'share'])->name('posts.share');
     // Follow
     Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
-});
-// TV 5 (LINH) - QUẢN TRỊ (ADMIN)
+    
+    // xem thêm bình luận
+    Route::get('/posts/{post}/load-more-comments', [InteractionController4::class, 'show'])->name('comments.show');

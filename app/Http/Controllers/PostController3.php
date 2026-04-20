@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Post;
 use App\Models\Media;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PostController3 extends Controller
 {
@@ -28,7 +30,7 @@ public function store(Request $request)
         // Lưu ý: Đảm bảo 'author_user_id' khớp với id người dùng (đang để mặc định là 1)
         $post = Post::create([
             
-            'author_user_id' => 1, 
+            'author_user_id' => Auth::id(), 
             'content' => $request->content,
             'visibility' => $request->visibility ?? 'public',
             'is_deleted' => 0
@@ -42,7 +44,7 @@ public function store(Request $request)
 
                 // Tạo bản ghi trong bảng media
                 $media = Media::create([
-                    'owner_user_id' => 1,
+                    'owner_user_id' => Auth::id(),
                     'type' => 'image',
                     'url' => 'uploads/posts/' . $fileName,
                     'filename' => $fileName,
@@ -66,12 +68,15 @@ public function store(Request $request)
     public function myPosts()
     {
         // 1. Lấy ID của người dùng đang đăng nhập
-        $userId = 1;
+        $userId = Auth::id();
 
         // 2. Lấy ra những bài viết của người dùng đó, kèm theo thông tin ảnh
         $posts = \App\Models\Post::where('author_user_id', $userId)
                                 ->where('is_deleted', 0) // Chỉ lấy những bài chưa bị xóa
-                                 ->with('media')
+                                 ->with(['media', 'comments' => function($query) {
+                                     $query->latest()->take(5);
+                                 }])
+                                 ->withCount('comments')
                                  ->latest()
                                  ->get();
 
@@ -83,7 +88,7 @@ public function store(Request $request)
     {
         $post = \App\Models\Post::findOrFail($id);
         // Kiểm tra xem người dùng có phải là tác giả không
-        if ($post->author_user_id !== 1) {
+        if ($post->author_user_id !== Auth::id()) {
             return back()->with('error', 'Bạn không có quyền xóa bài viết này!');
         }
         $post->update(['is_deleted' => 1]);
@@ -94,7 +99,7 @@ public function store(Request $request)
     public function edit($id) {
         $post = \App\Models\Post::findOrFail($id);
         // Kiểm tra xem người dùng có phải là tác giả không
-        if ($post->author_user_id !== 1) {
+        if ($post->author_user_id !== Auth::id()) {
             return back()->with('error', 'Bạn không có quyền chỉnh sửa bài viết này!');
         }
         return view('posts3.edit3', compact('post'));
@@ -107,7 +112,7 @@ public function store(Request $request)
     $post = Post::findOrFail($id);
     
     // Kiểm tra xem người dùng có phải là tác giả không
-    if ($post->author_user_id !== 1) {
+    if ($post->author_user_id !== Auth::id()) {
         return back()->with('error', 'Bạn không có quyền cập nhật bài viết này!');
     }
 
@@ -115,7 +120,6 @@ public function store(Request $request)
     $post->update([
         'content' => $request->content,
         'visibility' => $request->visibility,
-        'updated_at' => now(),
         'is_edited' => 1
     ]);
 
@@ -132,7 +136,7 @@ public function store(Request $request)
 
             // Lưu vào bảng media
             $media = Media::create([
-                'owner_user_id' => 1,
+                'owner_user_id' => Auth::id(),
                 'type' => 'image',
                 'url' => 'uploads/posts/' . $fileName,
                 'filename' => $fileName,
@@ -148,13 +152,38 @@ public function store(Request $request)
 }
     public function index()
 {
-    // Lấy dữ liệu bài viết
+    $userId = Auth::id() ?? 1;
+    // 1. Lấy dữ liệu bài viết (Gộp logic: lấy 5 cmt mới nhất + đếm tổng số cmt)
     $posts = \App\Models\Post::where('is_deleted', 0)
-                ->with('media')
+                ->with(['media', 'comments' => function($query) {
+                    $query->latest()->take(5); 
+                }])
+                ->withCount('comments') 
                 ->latest()
                 ->get();
+    
+    $posts->each(function($post) use ($userId) {
+        $post->is_liked_by_me = DB::table('post_likes')
+            ->where('post_id', $post->id)
+            ->where('user_id', $userId)
+            ->exists(); // Trả về true hoặc false
+    });
 
-    // Trả về file home của Lead, kèm theo biến $posts của bạn
-    return view('home', compact('posts'));
+    // 2. Lấy danh sách người dùng để hiển thị trong danh sách chia sẻ
+    $allUsers = \App\Models\User::where('id', '!=', Auth::id())->get();
+
+    // 3. Lấy danh sách gợi ý người dùng để follow
+    $followingIds = DB::table('followers')
+        ->where('follower_id', $userId)
+        ->pluck('following_id')
+        ->toArray();
+
+    $suggestedUsers = User::where('id', '!=', $userId)
+        ->whereNotIn('id', $followingIds)
+        ->inRandomOrder()
+        ->limit(5)
+        ->get();
+
+    return view('home', compact('posts', 'allUsers', 'suggestedUsers'));
 }
 }

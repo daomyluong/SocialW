@@ -58,8 +58,8 @@
     {{-- PHẦN 2: DANH SÁCH BÀI VIẾT LẤY TỪ DATABASE              --}}
     {{-- ======================================================= --}}
     @forelse($posts as $post)
-        <div class="post-item mb-4 border-bottom pb-3">
-            <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="post-item mb-4 border-bottom pb-3" id="post-{{ $post->id }}">
+        <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center">
                     {{-- Avatar người đăng --}}
                     <img src="https://ui-avatars.com/api/?name=User&background=random" class="rounded-circle me-2" width="40" height="40">
@@ -104,10 +104,83 @@
                     </div>
                 @endif
 
-                <div class="post-actions d-flex gap-4 text-secondary">
-                    <span><i class="fa-regular fa-heart me-1"></i> Thích</span>
-                    <span><i class="fa-regular fa-comment me-1"></i> Bình luận</span>
-                    <span><i class="fa-solid fa-share me-1"></i></span>
+                <div class="post-actions d-flex align-items-center gap-4 text-secondary">
+                    {{-- Nút Like --}}
+                    <form action="{{ route('posts.like', $post->id) }}" method="POST" class="d-inline-flex m-0 align-items-center">
+                        @csrf
+                        <button type="submit" class="btn btn-link text-decoration-none p-0 d-flex align-items-center {{ $post->is_liked_by_me ? 'text-danger' : 'text-secondary' }}">
+                            <i class="fa-{{ $post->is_liked_by_me ? 'solid' : 'regular' }} fa-heart me-1"></i> 
+                            <span>{{ $post->like_count ?? 0 }} Thích</span>
+                        </button>
+                    </form>
+
+                    {{-- NÚT BÌNH LUẬN --}}
+                    <button class="btn btn-link text-decoration-none text-secondary p-0 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#commentForm{{ $post->id }}">
+                        <i class="fa-regular fa-comment me-1"></i> 
+                        <span>{{ $post->comment_count ?? 0 }} Bình luận</span>
+                    </button>
+
+                    {{-- NÚT CHIA SẺ --}}
+                    <button class="btn btn-link text-decoration-none text-secondary p-0 d-flex align-items-center shadow-none" 
+                            data-bs-toggle="modal" data-bs-target="#shareModal{{ $post->id }}">
+                        <i class="fa-regular fa-share-from-square me-1"></i> 
+                        <span id="share-count-{{ $post->id }}">{{ $post->share_count ?? 0 }}</span>&nbsp;Chia sẻ
+                    </button>
+                </div>
+                 
+                {{-- MODAL CHIA SẺ --}}
+                <div class="modal fade" id="shareModal{{ $post->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title fw-bold">Chia sẻ bài viết</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ route('posts.share', $post->id) }}" method="POST">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Lời nhắn của bạn:</label>
+                                        <textarea name="comment" class="form-control form-control-sm" rows="3" placeholder="Viết lời nhắn..."></textarea>
+                                    </div>
+                                    
+                                    <p class="small text-muted mb-2">Gợi ý người dùng:</p>
+                                    <div class="user-suggestions d-flex flex-wrap gap-2">
+                                        @foreach($allUsers as $user)
+                                            <span class="badge rounded-pill bg-light text-dark border p-2" style="cursor:pointer;" onclick="addMention('{{ $user->username }}', {{ $post->id }})">
+                                                @ {{ $user->username }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0">
+                                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Chia sẻ ngay</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                @if(session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                {{-- KHU VỰC HIỂN THỊ VÀ NHẬP BÌNH LUẬN --}}
+                <div class="collapse mt-3" id="commentForm{{ $post->id }}">
+                    {{-- Gọi Component danh sách bình luận --}}
+                    <x-comment :post="$post" />
+
+                    {{-- Form nhập bình luận mới --}}
+                    <form action="{{ route('comments.store', $post->id) }}" method="POST" class="mt-3">
+                        @csrf
+                        <div class="input-group">
+                            <input type="text" name="content" class="form-control form-control-sm rounded-pill" placeholder="Viết bình luận..." required>
+                            <button class="btn btn-primary btn-sm rounded-pill ms-2" type="submit">Gửi</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -168,41 +241,169 @@ document.addEventListener('DOMContentLoaded', function() {
         @if(isset($suggestedUsers) && $suggestedUsers->count() > 0)
             <div class="d-flex flex-column gap-3">
                 @foreach($suggestedUsers as $user)
-                    <div class="d-flex align-items-center justify-content-between">
-                        
-                        <div class="d-flex align-items-center">
-                            {{-- Sử dụng ảnh avatar mẫu hoặc avatar thật từ DB --}}
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
-                                 class="rounded-circle me-2" 
-                                 width="40" height="40" 
-                                 alt="{{ $user->username }}">
-                            
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                    {{ $user->username }}
-                                </span>
-                                <span class="text-muted" style="font-size: 0.8rem;">
-                                    {{ $user->display_name }}
-                                </span>
+                    <div class="suggestion-item" id="suggestion-user-{{ $user->id }}">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
+                                     class="rounded-circle me-2" width="40" height="40">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->username }}</span>
+                                    <span class="text-muted" style="font-size: 0.8rem;">{{ $user->display_name }}</span>
+                                </div>
+                            </div>
+
+                            {{-- Nút Follow sử dụng AJAX --}}
+                            <button type="button" 
+                                    class="btn btn-sm rounded-pill fw-bold px-3 btn-follow-ajax btn-outline-dark"
+                                    data-user-id="{{ $user->id }}">
+                                Theo dõi
+                            </button>
+                        </div>
+
+                        {{-- PHẦN HIỂN THỊ THÊM GỢI Ý (Mặc định ẩn) --}}
+                        <div class="extra-suggestions mt-2 ps-4 d-none" id="extra-{{ $user->id }}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted fw-bold" style="font-size: 0.75rem;">Gợi ý tương tự</small>
+                                <a href="#" class="text-dark text-decoration-none" style="font-size: 0.7rem;">Xem tất cả</a>
+                            </div>
+                            <div class="d-flex gap-2 overflow-auto pb-2" style="scrollbar-width: none;">
+                                {{-- Giả lập thêm vài user gợi ý nhỏ bên dưới --}}
+                                @foreach($suggestedUsers->shuffle()->take(3) as $extra)
+                                    <div class="text-center p-2 border rounded-3 bg-light" style="min-width: 80px;">
+                                        <img src="https://ui-avatars.com/api/?name={{ $extra->username }}&size=30" class="rounded-circle mb-1">
+                                        <div class="text-truncate small fw-bold" style="max-width: 60px;">{{ $extra->username }}</div>
+                                        <button class="btn btn-primary btn-xs py-0 px-1 mt-1" style="font-size: 0.6rem;">Follow</button>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
-
-                        <div>
-                            {{-- Tái sử dụng component nút Follow của bạn, hoặc dùng trực tiếp Form ở đây --}}
-                            <form action="{{ route('users.follow', $user->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">
-                                    Theo dõi
-                                </button>
-                            </form>
-                        </div>
-
                     </div>
                 @endforeach
             </div>
         @else
-            {{-- Hiển thị nếu không có dữ liệu hoặc đã follow hết mọi người --}}
             <p class="text-muted small">Hiện chưa có gợi ý mới nào.</p>
         @endif
     </div>
+
+    {{-- SCRIPT XỬ LÝ AJAX FOLLOW --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-follow-ajax').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const btn = this;
+                const extraSection = document.getElementById(`extra-${userId}`);
+
+                // Gửi yêu cầu AJAX lên Server
+                fetch(`/users/${userId}/follow`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'followed') {
+                        // 1. Chuyển nút sang trạng thái "Đang theo dõi"
+                        btn.innerText = 'Đang theo dõi';
+                        btn.classList.remove('btn-outline-dark');
+                        btn.classList.add('btn-light', 'text-dark', 'border');
+
+                        // 2. Hiển thị phần "Gợi ý tương tự" bên dưới (Hiệu ứng trượt)
+                        extraSection.classList.remove('d-none');
+                        extraSection.style.animation = 'fadeInDown 0.3s ease-out';
+                    } else if (data.status === 'unfollowed') {
+                        btn.innerText = 'Theo dõi';
+                        btn.classList.remove('btn-light', 'text-dark', 'border');
+                        btn.classList.add('btn-outline-dark');
+                        extraSection.classList.add('d-none');
+                    }
+                })
+                .catch(error => console.error('Lỗi:', error));
+            });
+        });
+    });
+    </script>
+
+    <style>
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn-xs { padding: 0.1rem 0.3rem; font-size: 0.75rem; border-radius: 5px; }
+    </style>
 @endsection
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- PHẦN 1: GIỮ VỊ TRÍ CUỘN ---
+        const scrollPos = localStorage.getItem('social_app_scrollpos');
+        if (scrollPos) {
+            setTimeout(() => {
+                window.scrollTo({ top: parseInt(scrollPos), behavior: 'instant' });
+                localStorage.removeItem('social_app_scrollpos');
+            }, 100); 
+        }
+
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                localStorage.setItem('social_app_scrollpos', window.scrollY);
+            });
+        });
+
+        // --- PHẦN 2: XỬ LÝ AJAX XEM THÊM BÌNH LUẬN ---
+        document.body.addEventListener('click', function (e) {
+            const btn = e.target.closest('.load-more-btn');
+            if (!btn) return;
+
+            e.preventDefault();
+            const postId = btn.getAttribute('data-post-id');
+            const extraContainer = document.getElementById(`extra-comments-${postId}`);
+
+            if (extraContainer.innerHTML.trim() !== "") {
+                if (extraContainer.style.display === "none") {
+                    extraContainer.style.display = "block";
+                    btn.innerHTML = '<i class="fa-solid fa-angle-up me-1"></i> Thu gọn bình luận';
+                } else {
+                    extraContainer.style.display = "none";
+                    btn.innerHTML = `<i class="fa-solid fa-comments me-1"></i> Xem thêm bình luận khác...`;
+                }
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerText = "Đang tải...";
+            
+            // LƯU Ý: Đường dẫn ở đây đã được cập nhật
+            fetch(`/posts/${postId}/load-more-comments`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                extraContainer.innerHTML = data.html;
+                extraContainer.style.display = "block";
+                btn.innerHTML = '<i class="fa-solid fa-angle-up me-1"></i> Thu gọn bình luận';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.innerHTML = originalText;
+                alert("Không thể tải thêm bình luận lúc này.");
+            });
+        });
+
+        // --- PHẦN 3: XỬ LÝ MENTION ---
+        window.addMention = function(username, postId) {
+            const textarea = document.querySelector(`#shareModal${postId} textarea`);
+            if(textarea) {
+                textarea.value += `@${username} `;
+                textarea.focus();
+            }
+        }
+    });
+</script>
