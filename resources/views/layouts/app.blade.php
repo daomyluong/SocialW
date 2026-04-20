@@ -91,6 +91,10 @@
             <a class="nav-link {{ Route::is('posts3.create') ? 'active' : '' }}" href="{{ route('posts3.create') }}">
                 <i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết
             </a>
+
+<a class="nav-link {{ Route::is('bookmarks.index') ? 'active' : '' }}" href="{{ route('bookmarks.index') }}">
+    <i class="fa-regular fa-bookmark me-3"></i> Đã lưu
+</a>
         </nav>
     </div>
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PostController3;
 use App\Http\Controllers\InteractionController4;
+use App\Http\Controllers\BookmarkController3;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,6 +50,17 @@ Route::get('/', [PostController3::class, 'index'])->name('home');
 Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
     // Route để xử lý đăng Story mới
 Route::post('/stories3', [App\Http\Controllers\StoryController3::class, 'store'])->name('stories3.store');
+// Route xử lý việc nhấn nút lưu 
+Route::post('/bookmarks/toggle/{postId}', [BookmarkController3::class, 'toggleBookmark'])->name('bookmarks.toggle');
+
+// Route để vào trang xem danh sách đã lưu
+Route::get('/bookmarks', [BookmarkController3::class, 'index'])->name('bookmarks.index');
+Route::get('/bookmarks/folders', [BookmarkController3::class, 'getFolders']);
+
+
+
+
+
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 
 

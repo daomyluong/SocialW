@@ -45,7 +45,7 @@
     </div>
 
     {{-- ======================================================= --}}
-    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH (GIỮ NGUYÊN CODE CŨ)       --}}
+    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH                            --}}
     {{-- ======================================================= --}}
     <div class="card mb-4 border-0 border-bottom">
         <div class="card-body">
@@ -81,7 +81,8 @@
     {{-- PHẦN 2: DANH SÁCH BÀI VIẾT                              --}}
     {{-- ======================================================= --}}
     @forelse($posts as $post)
-        <div class="post-item mb-4 border-bottom pb-3">
+        {{-- THÊM ID ĐỂ TRANG BOOKMARKS CÓ THỂ TRỎ ĐẾN ĐÚNG BÀI VIẾT NÀY --}}
+        <div class="post-item mb-4 border-bottom pb-3" id="post-{{ $post->id }}">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center">
                     <img src="https://ui-avatars.com/api/?name=User&background=random" class="rounded-circle me-2" width="40" height="40">
@@ -121,10 +122,23 @@
                         </div>
                     </div>
                 @endif
-                <div class="post-actions d-flex gap-4 text-secondary">
-                    <span><i class="fa-regular fa-heart me-1"></i> Thích</span>
-                    <span><i class="fa-regular fa-comment me-1"></i> Bình luận</span>
-                    <span><i class="fa-solid fa-share me-1"></i></span>
+                <div class="post-actions d-flex justify-content-between text-secondary">
+                    <div class="d-flex gap-4">
+                        <span><i class="fa-regular fa-heart me-1"></i> Thích</span>
+                        <span><i class="fa-regular fa-comment me-1"></i> Bình luận</span>
+                        <span><i class="fa-solid fa-share me-1"></i></span>
+                    </div>
+                    
+                    {{-- NÚT BOOKMARK: ĐÃ FIX ĐỂ TỰ ĐỘNG CẬP NHẬT KHI BỎ LƯU --}}
+                    <div onclick="toggleBookmark3({{ $post->id }}, this)" style="cursor: pointer;" title="Lưu bài viết">
+                        @php
+                            $isBookmarked = \App\Models\Bookmark3::where('user_id', Auth::id() ?? 1)
+                                            ->where('post_id', $post->id)
+                                            ->where('is_deleted', 0) 
+                                            ->exists();
+                        @endphp
+                        <i class="{{ $isBookmarked ? 'fa-solid text-dark' : 'fa-regular' }} fa-bookmark" style="font-size: 1.1rem;"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -134,7 +148,7 @@
 </div>
 
 {{-- ======================================================= --}}
-{{-- MODAL XEM STORY (HEADER + SKIP/BACK)                    --}}
+{{-- MODAL XEM STORY                                         --}}
 {{-- ======================================================= --}}
 <div class="modal fade" id="storyModal3" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -157,28 +171,37 @@
 
                 <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1009;"></button>
                 
-                <div id="storyMediaContainer3" class="d-flex align-items-center justify-content-center bg-black" style="min-height: 500px; height: 100vh;">
+                <div id="storyMediaContainer3" class="d-flex align-items-center justify-content-center bg-black" style="min-height: 500px; height: 100vh;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL CHỌN THƯ MỤC BOOKMARK --}}
+<div class="modal fade" id="bookmarkFolderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold">Lưu vào thư mục...</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="folderList" class="list-group list-group-flush mb-3" style="max-height: 200px; overflow-y: auto;"></div>
+                <div class="input-group input-group-sm">
+                    <input type="text" id="newFolderName" class="form-control" placeholder="Tên thư mục mới...">
+                    <button class="btn btn-primary" onclick="confirmBookmarkWithNewFolder()">Lưu</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .preview-box { position: relative; width: 60px; height: 60px; }
-    .preview-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-    .remove-btn { 
-        position: absolute; top: -5px; right: -5px; background: red; color: white; 
-        border-radius: 50%; width: 18px; height: 18px; font-size: 10px; 
-        display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid white;
-    }
-</style>
-
 <script>
 let storyInterval3;
 let currentStoryIdx = 0;
 let currentUserStories = [];
 
+// --- STORY LOGIC ---
 function openStoryModal3(userStories) {
     currentUserStories = userStories;
     currentStoryIdx = 0;
@@ -192,7 +215,6 @@ function renderSingleStory() {
     const container = document.getElementById('storyMediaContainer3');
     const progressBar = document.getElementById('storyProgressBar3');
     
-    // Cập nhật Header
     document.getElementById('storyUserName3').innerText = story.user ? (story.user.username || story.user.name) : 'User #' + story.user_id;
     document.getElementById('storyUserAvatar3').src = `https://ui-avatars.com/api/?name=User${story.user_id}&background=random`;
     
@@ -217,30 +239,88 @@ function renderSingleStory() {
             clearInterval(storyInterval3);
             nextStory3();
         }
-    }, 100); // 10 giây
+    }, 100); 
 }
 
 function nextStory3(event) {
     if(event) event.stopPropagation();
     clearInterval(storyInterval3);
     currentStoryIdx++;
-    if (currentStoryIdx < currentUserStories.length) {
-        renderSingleStory();
-    } else {
-        const modalEl = document.getElementById('storyModal3');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        modalInstance.hide();
-    }
+    if (currentStoryIdx < currentUserStories.length) renderSingleStory();
+    else bootstrap.Modal.getInstance(document.getElementById('storyModal3')).hide();
 }
 
 function prevStory3(event) {
     if(event) event.stopPropagation();
     clearInterval(storyInterval3);
     currentStoryIdx--;
-    if (currentStoryIdx < 0) {
-        currentStoryIdx = 0; 
-    }
+    if (currentStoryIdx < 0) currentStoryIdx = 0; 
     renderSingleStory();
+}
+
+// --- BOOKMARK LOGIC ---
+let pendingPostId = null;
+let pendingElement = null;
+
+function toggleBookmark3(postId, element) {
+    const icon = element.querySelector('i');
+    
+    // Nếu icon đang đậm -> Gửi yêu cầu xóa mềm (toggle)
+    if (icon.classList.contains('fa-solid')) {
+        saveBookmarkAction(postId, 'Tất cả', element);
+        return;
+    }
+
+    pendingPostId = postId;
+    pendingElement = element;
+    
+    fetch('/bookmarks/folders')
+        .then(res => res.json())
+        .then(folders => {
+            let html = `<button onclick="confirmBookmark('Tất cả')" class="list-group-item list-group-item-action border-0 px-2 py-2 mb-1 rounded bg-light">📁 Tất cả</button>`;
+            folders.forEach(f => {
+                if(f !== 'Tất cả') html += `<button onclick="confirmBookmark('${f}')" class="list-group-item list-group-item-action border-0 px-2 py-2 mb-1 rounded bg-light">📁 ${f}</button>`;
+            });
+            document.getElementById('folderList').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('bookmarkFolderModal')).show();
+        });
+}
+
+function confirmBookmark(folderName) {
+    saveBookmarkAction(pendingPostId, folderName, pendingElement);
+    bootstrap.Modal.getInstance(document.getElementById('bookmarkFolderModal')).hide();
+}
+
+function confirmBookmarkWithNewFolder() {
+    const input = document.getElementById('newFolderName');
+    const folderName = input.value.trim();
+    if (folderName) {
+        confirmBookmark(folderName);
+        input.value = '';
+    }
+}
+
+function saveBookmarkAction(postId, folderName, element) {
+    const icon = element.querySelector('i');
+    fetch(`/bookmarks/toggle/${postId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ folder_name: folderName })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'added') {
+            icon.classList.replace('fa-regular', 'fa-solid');
+            icon.classList.add('text-dark');
+        } else {
+            icon.classList.replace('fa-solid', 'fa-regular');
+            icon.classList.remove('text-dark');
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -249,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('storyMediaContainer3').innerHTML = '';
     });
 
-    // Preview ảnh bài đăng
     const inp = document.getElementById('homePostImage');
     const pre = document.getElementById('homeImagePreview');
     let dt = new DataTransfer();
@@ -290,8 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 @foreach($suggestedUsers as $user)
                     <div class="d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
-                                 class="rounded-circle me-2" width="40" height="40">
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" class="rounded-circle me-2" width="40" height="40">
                             <div class="d-flex flex-column">
                                 <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->username }}</span>
                                 <span class="text-muted" style="font-size: 0.8rem;">{{ $user->display_name }}</span>
