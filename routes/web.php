@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PostController3;
-
+use App\Http\Controllers\InteractionController4;
 
 Route::get('/', function () {
     return view('welcome');
@@ -41,4 +41,17 @@ Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.upda
 
 Route::get('/', [PostController3::class, 'index'])->name('home');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
+
+
+Route::middleware(['auth'])->group(function () {
+    // Like
+    Route::post('/posts/{post}/like', [InteractionController4::class, 'like'])->name('posts.like');
+
+    // Comment
+    Route::post('/posts/{post}/comments', [InteractionController4::class, 'comment'])->name('comments.store');
+    Route::delete('/comments/{comment}', [InteractionController4::class, 'destroyComment'])->name('comments.destroy');
+
+    // Follow
+    Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
+});
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
