@@ -1,6 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
+
+Route::middleware('web')->group(function (): void {
+    require __DIR__.'/web/tv1_home_search.php';
+    require __DIR__.'/web/tv2_auth_profile.php';
+    require __DIR__.'/web/tv3_posts.php';
+    require __DIR__.'/web/tv4_social.php';
+    require __DIR__.'/web/tv6_messages.php';
+    require __DIR__.'/web/tv5_admin.php';
+});
+
 use App\Http\Controllers\HomeController4;
 use App\Http\Controllers\SearchController;
 
@@ -120,3 +131,4 @@ Route::prefix('admin')->group(function () {
 // Giữ lại cái tên 'home' này để nút "Quay lại W-Social" không bị lỗi
 // (Khi nào Leader làm xong trang chủ thì mình sẽ xóa dòng này đi sau)
 //Route::get('/home-test', function () { return "Đây là trang chủ"; })->name('home');
+
