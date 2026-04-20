@@ -2,6 +2,35 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Post extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'author_user_id',
+        'content',
+        'media_id',
+        'like_count',
+        'comment_count',
+        'visibility',
+        'is_deleted',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_deleted' => 'boolean',
+        ];
+    }
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_user_id');
+    }
 use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
@@ -25,6 +54,11 @@ class Post extends Model
     // 4. Một bài viết có nhiều ảnh qua bảng trung gian
     public function media() {
         return $this->belongsToMany(Media::class, 'post_media', 'post_id', 'media_id');
+    }
+
+    // 5. Một bài viết có nhiều bình luận
+    public function comments() {
+        return $this->hasMany(Comment4::class, 'post_id');
     }
     
 }

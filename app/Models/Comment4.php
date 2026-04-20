@@ -22,7 +22,7 @@ class Comment4 extends Model
     // Một bình luận thuộc về một bài viết.
     public function post()
     {
-        return $this->belongsTo(Post4::class, 'post_id');
+        return $this->belongsTo(Post::class, 'post_id');
     }
 
     // Một bình luận được viết bởi một người dùng.
