@@ -60,7 +60,7 @@
     <div class="nav-tabs-threads" id="profileTabs">
         <div class="nav-item-threads active" role="button">Tất cả</div>
         <div class="nav-item-threads" role="button">Ảnh</div>
-        <div class="nav-item-threads" role="button">Reels</div>
+        <div class="nav-item-threads" role="button">Album</div>
     </div>
 
     <div class="mt-4 text-center" style="color: #999; padding-top: 40px;">
