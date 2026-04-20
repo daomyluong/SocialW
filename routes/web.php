@@ -1,7 +1,34 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
+
+Route::middleware('web')->group(function (): void {
+    require __DIR__.'/web/tv1_home_search.php';
+    require __DIR__.'/web/tv2_auth_profile.php';
+    require __DIR__.'/web/tv3_posts.php';
+    require __DIR__.'/web/tv4_social.php';
+    require __DIR__.'/web/tv6_messages.php';
+    require __DIR__.'/web/tv5_admin.php';
+});
+
+use App\Http\Controllers\HomeController4;
+use App\Http\Controllers\SearchController;
+
+use App\Http\Controllers\ProfileController;
+use App\Models\User;
+
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+use App\Http\Controllers\PostController3;
+use App\Http\Controllers\InteractionController4;
+use App\Http\Controllers\BookmarkController3;
+=======
 use App\Http\Controllers\AdminController5;
+
 
 Route::get('/welcome', function () {
     return view('welcome');
@@ -11,6 +38,7 @@ Route::get('/welcome', function () {
 Route::get('/', function () {
     return view('home'); 
 })->name('home');
+Route::redirect('/home', '/');
 
 Route::get('/search', function () {
     return "Trang tìm kiếm";
@@ -18,12 +46,73 @@ Route::get('/search', function () {
 
 // TV 2 (LOAN) - NGƯỜI DÙNG (AUTH & PROFILE)
 Route::get('/profile', function () {
-    return "Trang profile";
+    if (!auth()->check()) {
+        return redirect()->route('login');
+    }
+    return redirect()->route('profile.show', auth()->id());
 })->name('profile');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/{id}/follow', [ProfileController::class, 'follow'])->name('profile.follow');
+});
+
+Route::get('/profile/{id}', [ProfileController::class, 'show'])
+    ->whereNumber('id')
+    ->name('profile.show');
 // TV 3 (THANH) - BÀI VIẾT (POSTS)
 Route::get('/post/{id}', [AdminController5::class, 'showPost'])->name('post.show');
+    // Đường dẫn để hiện form đăng bài
+    Route::get('/posts/create', [PostController3::class, 'create'])->name('posts3.create');
+    
+    // Đường dẫn để xử lý lưu dữ liệu
+    Route::post('/posts/store', [PostController3::class, 'store'])->name('posts3.store');
+    // Đường dẫn xem bài viết của riêng tôi
+Route::get('/my-posts', [PostController3::class, 'myPosts'])->name('posts3.myPosts');
+
+
+// Route để XEM chi tiết bài viết (Phương thức GET)
+Route::get('/posts/{id}', [PostController3::class, 'show'])->name('posts3.show');
+
+    // Route xóa bài viết
+Route::delete('/posts/{id}', [PostController3::class, 'destroy'])->name('posts3.destroy');
+    // Route Sửa - 1: Mở trang sửa (Cần file edit3.blade.php sau này)
+Route::get('/posts/{id}/edit', [PostController3::class, 'edit'])->name('posts3.edit');
+    // Route Sửa - 2: Lưu dữ liệu (Không cần file giao diện)
+Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
+
+Route::get('/', [PostController3::class, 'index'])->name('home');
+   // Route xem danh sách thông báo
+Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
+    // Route để xử lý đăng Story mới
+Route::post('/stories3', [App\Http\Controllers\StoryController3::class, 'store'])->name('stories3.store');
+// Route xử lý việc nhấn nút lưu 
+Route::post('/bookmarks/toggle/{postId}', [BookmarkController3::class, 'toggleBookmark'])->name('bookmarks.toggle');
+
+// Route để vào trang xem danh sách đã lưu
+Route::get('/bookmarks', [BookmarkController3::class, 'index'])->name('bookmarks.index');
+Route::get('/bookmarks/folders', [BookmarkController3::class, 'getFolders']);
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
+
+// TV 5 (LINH) - QUẢN TRỊ (ADMIN)
+require __DIR__.'/auth.php';
+
+    // Like
+    Route::post('/posts/{post}/like', [InteractionController4::class, 'like'])->name('posts.like');
+
+    // Comment
+    Route::post('/posts/{post}/comments', [InteractionController4::class, 'comment'])->name('comments.store');
+    Route::delete('/comments/{comment}', [InteractionController4::class, 'destroyComment'])->name('comments.destroy');
+
+    // Share
+    Route::post('/posts/{post}/share', [InteractionController4::class, 'share'])->name('posts.share');
+    // Follow
+    Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
+    Route::get('/suggestions', [HomeController4::class, 'allSuggestions'])->name('users.suggestions');
+    
+    // xem thêm bình luận
+    Route::get('/posts/{post}/load-more-comments', [InteractionController4::class, 'show'])->name('comments.show');
 
 
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
@@ -60,3 +149,4 @@ Route::prefix('admin')->group(function () {
     // Route xử lý thao tác (Phán quyết) của Admin
     Route::post('/reports/process', [AdminController5::class, 'processReport'])->name('admin.reports.process');
 });
+

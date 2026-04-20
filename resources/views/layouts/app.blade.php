@@ -31,6 +31,7 @@
 
         .logo h3 {
             background: linear-gradient(45deg, var(--hlink-blue), var(--hlink-green));
+            background-clip: text;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             font-weight: 800;
         }
@@ -84,8 +85,20 @@
             <a class="nav-link {{ Route::is('search') ? 'active' : '' }}" href="{{ route('search') }}">
                 <i class="fa-solid fa-magnifying-glass me-3"></i> Tìm kiếm
             </a>
+           <a class="nav-link text-dark" href="{{ route('notifications.index') }}">
+    <i class="fa-regular fa-heart me-3"></i> Thông báo
+</a>
+            <a class="nav-link {{ Route::is('messages.*') ? 'active' : '' }}" href="{{ route('messages.index') }}">
+                <i class="fa-regular fa-comments me-3"></i> Nhắn tin
+            </a>
             <a class="nav-link text-dark" href="#"><i class="fa-regular fa-heart me-3"></i> Thông báo</a>
-            <a class="nav-link text-dark" href="#"><i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết</a>
+            <a class="nav-link {{ Route::is('posts3.create') ? 'active' : '' }}" href="{{ route('posts3.create') }}">
+                <i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết
+            </a>
+
+<a class="nav-link {{ Route::is('bookmarks.index') ? 'active' : '' }}" href="{{ route('bookmarks.index') }}">
+    <i class="fa-regular fa-bookmark me-3"></i> Đã lưu
+</a>
         </nav>
     </div>
 
@@ -100,8 +113,8 @@
         <div class="user-area dropdown">
             <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="userDropdown" data-bs-toggle="dropdown">
                 <div class="text-end me-3 d-none d-sm-block">
-                    <div class="fw-bold">{{ Auth::user()->display_name ?? 'Lương Mỵ Đào' }}</div>
-                    <small class="text-muted">@auth {{ Auth::user()->username }} @else guest @endauth</small>
+                    <div class="fw-bold">{{ auth()->user()?->display_name ?? 'Lương Mỵ Đào' }}</div>
+                    <small class="text-muted">{{ auth()->user()?->username ?? 'guest' }}</small>
                 </div>
                 <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
                     <i class="fa-solid fa-user"></i>
@@ -112,14 +125,21 @@
                 <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
                 <li><a class="dropdown-item py-2 text-primary fw-bold" href="#"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item py-2 text-danger" href="#"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất</a></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="dropdown-item py-2 text-danger" style="border: none; background: none; width: 100%; text-align: left;">
+                            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất
+                        </button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>
 
     <div class="main-content">
         <div class="row h-100 g-0">
-            <div class="col-lg-8 border-end scrollable-column bg-white">
+            <div class="{{ Route::is('messages.*') ? 'col-lg-8 p-0 overflow-hidden bg-white border-end d-flex flex-column h-100' : 'col-lg-8 border-end scrollable-column bg-white' }}">
                 @yield('content')
             </div>
 
