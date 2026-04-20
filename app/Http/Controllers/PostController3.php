@@ -152,6 +152,8 @@ public function store(Request $request)
 }
     public function index()
 {
+
+    // 1. Lấy dữ liệu bài viết 
     $userId = Auth::id() ?? 1;
     // 1. Lấy dữ liệu bài viết (Gộp logic: lấy 5 cmt mới nhất + đếm tổng số cmt)
     $posts = \App\Models\Post::where('is_deleted', 0)
@@ -161,6 +163,37 @@ public function store(Request $request)
                 ->withCount('comments') 
                 ->latest()
                 ->get();
+
+    // 2. Lấy dữ liệu Story trong vòng 24h qua
+    $stories = \App\Models\Story3::active24h()
+                ->with('user') // Lấy thông tin người đăng để hiện avatar
+                ->latest()
+                ->get()
+                ->groupBy('user_id'); // Nhóm lại theo từng người dùng
+    return view('home', compact('posts', 'stories'));
+}
+    public function notifications()
+{
+    $userId = 1; 
+
+    // Lấy tất cả thông báo của User 
+    $notifications = \App\Models\Notification::where('user_id', $userId)
+                        ->latest()
+                        ->get();
+
+    // Khi người dùng vào trang này, chúng ta coi như họ đã đọc hết
+    \App\Models\Notification::where('user_id', $userId)->update(['is_read' => 1]);
+
+    return view('posts3.notifications3', compact('notifications'));
+}
+public function show($id)
+{
+    // Tìm bài viết theo ID
+    $post = \App\Models\Post::with('media')->findOrFail($id);
+
+    // Trả về view chi tiết  
+    return view('posts3.show3', compact('post'));
+
     
     $posts->each(function($post) use ($userId) {
         $post->is_liked_by_me = DB::table('post_likes')

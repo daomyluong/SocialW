@@ -85,6 +85,9 @@
             <a class="nav-link {{ Route::is('search') ? 'active' : '' }}" href="{{ route('search') }}">
                 <i class="fa-solid fa-magnifying-glass me-3"></i> Tìm kiếm
             </a>
+           <a class="nav-link text-dark" href="{{ route('notifications.index') }}">
+    <i class="fa-regular fa-heart me-3"></i> Thông báo
+</a>
             <a class="nav-link {{ Route::is('messages.*') ? 'active' : '' }}" href="{{ route('messages.index') }}">
                 <i class="fa-regular fa-comments me-3"></i> Nhắn tin
             </a>
@@ -92,6 +95,10 @@
             <a class="nav-link {{ Route::is('posts3.create') ? 'active' : '' }}" href="{{ route('posts3.create') }}">
                 <i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết
             </a>
+
+<a class="nav-link {{ Route::is('bookmarks.index') ? 'active' : '' }}" href="{{ route('bookmarks.index') }}">
+    <i class="fa-regular fa-bookmark me-3"></i> Đã lưu
+</a>
         </nav>
     </div>
 

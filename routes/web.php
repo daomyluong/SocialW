@@ -25,6 +25,8 @@ Route::get('/dashboard', function () {
 
 use App\Http\Controllers\PostController3;
 use App\Http\Controllers\InteractionController4;
+use App\Http\Controllers\BookmarkController3;
+=======
 use App\Http\Controllers\AdminController5;
 
 
@@ -67,6 +69,11 @@ Route::get('/profile/{id}', [ProfileController::class, 'show'])
     Route::post('/posts/store', [PostController3::class, 'store'])->name('posts3.store');
     // Đường dẫn xem bài viết của riêng tôi
 Route::get('/my-posts', [PostController3::class, 'myPosts'])->name('posts3.myPosts');
+
+
+// Route để XEM chi tiết bài viết (Phương thức GET)
+Route::get('/posts/{id}', [PostController3::class, 'show'])->name('posts3.show');
+
     // Route xóa bài viết
 Route::delete('/posts/{id}', [PostController3::class, 'destroy'])->name('posts3.destroy');
     // Route Sửa - 1: Mở trang sửa (Cần file edit3.blade.php sau này)
@@ -75,6 +82,21 @@ Route::get('/posts/{id}/edit', [PostController3::class, 'edit'])->name('posts3.e
 Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
 
 Route::get('/', [PostController3::class, 'index'])->name('home');
+   // Route xem danh sách thông báo
+Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
+    // Route để xử lý đăng Story mới
+Route::post('/stories3', [App\Http\Controllers\StoryController3::class, 'store'])->name('stories3.store');
+// Route xử lý việc nhấn nút lưu 
+Route::post('/bookmarks/toggle/{postId}', [BookmarkController3::class, 'toggleBookmark'])->name('bookmarks.toggle');
+
+// Route để vào trang xem danh sách đã lưu
+Route::get('/bookmarks', [BookmarkController3::class, 'index'])->name('bookmarks.index');
+Route::get('/bookmarks/folders', [BookmarkController3::class, 'getFolders']);
+
+
+
+
+
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
