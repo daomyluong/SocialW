@@ -5,8 +5,13 @@
     <div class="card border-0 shadow-sm p-4" style="background: white; border-radius: 15px;">
         <h4 class="fw-bold mb-4 text-center">Chỉnh sửa trang cá nhân</h4>
         
-        <form action="{{ route('profile.update') }}" method="POST">
+        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            @method('PUT')
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Ảnh đại diện</label>
+                <input type="file" name="avatar" class="form-control shadow-none" style="border-radius: 8px;">
+            </div>
             <div class="mb-3">
                 <label class="form-label fw-semibold">Tên hiển thị</label>
                 <input type="text" name="display_name" class="form-control shadow-none" 

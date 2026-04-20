@@ -16,8 +16,17 @@
 
     <div class="card mb-4 border-0 border-bottom shadow-sm">
         <div class="card-body d-flex">
-            <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                <i class="fa-solid fa-user fa-xl text-secondary"></i>
+            <div class="avatar me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
+                @auth
+                    <a href="{{ route('profile.show', Auth::id()) }}">
+                        <img src="{{ asset(Auth::user()->avatar_url ?? 'uploads/avatars/default.png') }}" 
+                             class="rounded-circle" width="50" height="50" style="object-fit: cover;">
+                    </a>
+                @else
+                    <div class="bg-light rounded-circle w-100 h-100 d-flex align-items-center justify-content-center">
+                        <i class="fa-solid fa-user fa-xl text-secondary"></i>
+                    </div>
+                @endauth
             </div>
             <div class="w-100">
                 <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" 
@@ -34,7 +43,9 @@
 
     <div class="post-item mb-4 border-bottom pb-3">
         <div class="d-flex align-items-center mb-2">
-            <img src="https://ui-avatars.com/api/?name=Tuan+MIS&background=0D8ABC&color=fff" class="rounded-circle me-2" width="40" height="40">
+            <a href="{{ route('profile.show', 2) }}">
+                <img src="https://ui-avatars.com/api/?name=Tuan+MIS&background=0D8ABC&color=fff" class="rounded-circle me-2" width="40" height="40">
+            </a>
             <div>
                 <span class="fw-bold">tuan_mis</span>
                 <small class="text-muted d-block">2 giờ trước</small>
@@ -55,7 +66,9 @@
 
     <div class="post-item mb-4 border-bottom pb-3">
         <div class="d-flex align-items-center mb-2">
-            <img src="https://ui-avatars.com/api/?name=Lan+HCMUB&background=702963&color=fff" class="rounded-circle me-2" width="40" height="40">
+            <a href="{{ route('profile.show', 3) }}">
+                <img src="https://ui-avatars.com/api/?name=Lan+HCMUB&background=702963&color=fff" class="rounded-circle me-2" width="40" height="40">
+            </a>
             <div>
                 <span class="fw-bold">lan_hcmub</span>
                 <small class="text-muted d-block">5 giờ trước</small>
@@ -75,11 +88,8 @@
 @section('suggestions')
     <div class="p-3">
         @auth
-            <div class="mb-4">
-                <a href="{{ url('/dashboard') }}" class="btn btn-primary w-100">Đến Bảng điều khiển</a>
-            </div>
+            
         @endauth
-        
         <p class="text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
     </div>
 @endsection

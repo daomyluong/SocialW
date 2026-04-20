@@ -112,7 +112,14 @@
                 <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
                 <li><a class="dropdown-item py-2 text-primary fw-bold" href="#"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item py-2 text-danger" href="#"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất</a></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="dropdown-item py-2 text-danger" style="border: none; background: none; width: 100%; text-align: left;">
+                            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất
+                        </button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>

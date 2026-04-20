@@ -13,22 +13,34 @@
 
                         <div class="mb-3">
                             <label class="form-label">Tên hiển thị</label>
-                            <input type="text" name="display_name" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required autofocus>
+                            <input type="text" name="display_name" value="{{ old('display_name') }}" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required autofocus>
+                            @error('display_name')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Tên đăng nhập (Username)</label>
-                            <input type="text" name="username" class="form-control" placeholder="nguyenvana" required>
+                            <input type="text" name="username" value="{{ old('username') }}" class="form-control" placeholder="nguyenvana" required>
+                            @error('username')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Địa chỉ Email</label>
-                            <input type="email" name="email" class="form-control" placeholder="name@example.com" required>
+                            <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="name@example.com" required>
+                            @error('email')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Mật khẩu</label>
                             <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                            @error('password')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
                         </div>
 
                         <div class="mb-4">

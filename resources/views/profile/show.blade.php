@@ -22,9 +22,21 @@
                 <span class="username-link">{{ $user->username }}</span>
                 <span class="badge-threads">W-social</span>
             </div>
+
+            <div class="d-flex gap-3 mt-3" style="font-size: 14px; color: #555;">
+                <div>
+                    <strong>{{ $postCount }}</strong> Bài viết
+                </div>
+                <div>
+                    <strong>{{ $followerCount }}</strong> Theo dõi
+                </div>
+                <div>
+                    <strong>{{ $followingCount }}</strong> Đang theo dõi
+                </div>
+            </div>
         </div>
         <div>
-            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->display_name) }}&background=ebebeb&color=000" 
+            <img src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name=' . urlencode($user->display_name) . '&background=ebebeb&color=000' }}" 
                  class="avatar-img" alt="Avatar">
         </div>
     </div>
@@ -33,23 +45,38 @@
         <p style="white-space: pre-wrap;">{{ $user->bio ?? 'Chưa có tiểu sử.' }}</p>
     </div>
 
-    <div class="mt-2" style="color: #999; font-size: 14px;">
-        <span>{{ $user->follower_count }} người theo dõi</span>
-    </div>
-
     <div class="d-flex gap-2 mt-4">
-        <button class="btn btn-outline-custom">Chỉnh sửa trang cá nhân</button>
-        <button class="btn btn-outline-custom">Chia sẻ trang cá nhân</button>
+        @if ($isOwnProfile)
+            <a href="{{ route('profile.edit') }}" class="btn btn-outline-custom">Chỉnh sửa trang cá nhân</a>
+        @else
+            <form action="{{ route('profile.follow', $user->id) }}" method="POST" style="width: 100%;">
+                @csrf
+                <button type="submit" class="btn btn-outline-custom w-100">Theo dõi</button>
+            </form>
+        @endif
+      
     </div>
 
-    <div class="nav-tabs-threads">
-        <div class="nav-item-threads active">W-social</div>
-        <div class="nav-item-threads">Trả lời</div>
-        <div class="nav-item-threads">Bài đăng lại</div>
+    <div class="nav-tabs-threads" id="profileTabs">
+        <div class="nav-item-threads active" role="button">Tất cả</div>
+        <div class="nav-item-threads" role="button">Ảnh</div>
+        <div class="nav-item-threads" role="button">Reels</div>
     </div>
 
     <div class="mt-4 text-center" style="color: #999; padding-top: 40px;">
-        <p>Bạn chưa có đoạn thread nào.</p>
+        <p>Bạn chưa có đoạn W-social nào.</p>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('#profileTabs .nav-item-threads');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
 </div>
 @endsection
