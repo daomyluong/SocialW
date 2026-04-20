@@ -28,9 +28,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
-    }
-
+      // Sửa dòng 31 thành:
+    return redirect()->intended(route('home', absolute: false)); 
+// Hoặc nếu chưa đặt tên route cho trang chủ:
+    return redirect('/');
+        }
     /**
      * Destroy an authenticated session.
      */
