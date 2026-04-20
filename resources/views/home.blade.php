@@ -237,104 +237,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
 @section('suggestions')
     <div class="px-2">
-        <h6 class="fw-bold text-secondary mb-3">Gợi ý cho bạn</h6>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold text-secondary m-0" style="font-size: 0.9rem;">Gợi ý cho bạn</h6>
+            <a href="{{ route('users.suggestions') }}" class="text-dark fw-bold text-decoration-none" style="font-size: 0.75rem;">Xem tất cả</a>
+        </div>
+
         @if(isset($suggestedUsers) && $suggestedUsers->count() > 0)
-            <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-column gap-3" id="main-suggestion-list">
                 @foreach($suggestedUsers as $user)
-                    <div class="suggestion-item" id="suggestion-user-{{ $user->id }}">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
-                                     class="rounded-circle me-2" width="40" height="40">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->username }}</span>
-                                    <span class="text-muted" style="font-size: 0.8rem;">{{ $user->display_name }}</span>
-                                </div>
-                            </div>
-
-                            {{-- Nút Follow sử dụng AJAX --}}
-                            <button type="button" 
-                                    class="btn btn-sm rounded-pill fw-bold px-3 btn-follow-ajax btn-outline-dark"
-                                    data-user-id="{{ $user->id }}">
-                                Theo dõi
-                            </button>
-                        </div>
-
-                        {{-- PHẦN HIỂN THỊ THÊM GỢI Ý (Mặc định ẩn) --}}
-                        <div class="extra-suggestions mt-2 ps-4 d-none" id="extra-{{ $user->id }}">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <small class="text-muted fw-bold" style="font-size: 0.75rem;">Gợi ý tương tự</small>
-                                <a href="#" class="text-dark text-decoration-none" style="font-size: 0.7rem;">Xem tất cả</a>
-                            </div>
-                            <div class="d-flex gap-2 overflow-auto pb-2" style="scrollbar-width: none;">
-                                {{-- Giả lập thêm vài user gợi ý nhỏ bên dưới --}}
-                                @foreach($suggestedUsers->shuffle()->take(3) as $extra)
-                                    <div class="text-center p-2 border rounded-3 bg-light" style="min-width: 80px;">
-                                        <img src="https://ui-avatars.com/api/?name={{ $extra->username }}&size=30" class="rounded-circle mb-1">
-                                        <div class="text-truncate small fw-bold" style="max-width: 60px;">{{ $extra->username }}</div>
-                                        <button class="btn btn-primary btn-xs py-0 px-1 mt-1" style="font-size: 0.6rem;">Follow</button>
-                                    </div>
-                                @endforeach
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random" 
+                                 class="rounded-circle me-2" width="32" height="32">
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-dark" style="font-size: 0.85rem; line-height: 1;">{{ $user->username }}</span>
+                                <span class="text-muted" style="font-size: 0.75rem;">Gợi ý cho bạn</span>
                             </div>
                         </div>
+                        <button type="button" class="btn-follow-ig border-0 bg-transparent text-primary fw-bold p-0" 
+                                style="font-size: 0.75rem;" data-user-id="{{ $user->id }}">
+                            Theo dõi
+                        </button>
                     </div>
                 @endforeach
             </div>
-        @else
-            <p class="text-muted small">Hiện chưa có gợi ý mới nào.</p>
         @endif
     </div>
-
-    {{-- SCRIPT XỬ LÝ AJAX FOLLOW --}}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.btn-follow-ajax').forEach(button => {
-            button.addEventListener('click', function() {
-                const userId = this.getAttribute('data-user-id');
-                const btn = this;
-                const extraSection = document.getElementById(`extra-${userId}`);
-
-                // Gửi yêu cầu AJAX lên Server
-                fetch(`/users/${userId}/follow`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'followed') {
-                        // 1. Chuyển nút sang trạng thái "Đang theo dõi"
-                        btn.innerText = 'Đang theo dõi';
-                        btn.classList.remove('btn-outline-dark');
-                        btn.classList.add('btn-light', 'text-dark', 'border');
-
-                        // 2. Hiển thị phần "Gợi ý tương tự" bên dưới (Hiệu ứng trượt)
-                        extraSection.classList.remove('d-none');
-                        extraSection.style.animation = 'fadeInDown 0.3s ease-out';
-                    } else if (data.status === 'unfollowed') {
-                        btn.innerText = 'Theo dõi';
-                        btn.classList.remove('btn-light', 'text-dark', 'border');
-                        btn.classList.add('btn-outline-dark');
-                        extraSection.classList.add('d-none');
-                    }
-                })
-                .catch(error => console.error('Lỗi:', error));
-            });
-        });
-    });
-    </script>
-
-    <style>
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .btn-xs { padding: 0.1rem 0.3rem; font-size: 0.75rem; border-radius: 5px; }
-    </style>
 @endsection
 
+{{-- Script này dùng chung cho cả trang Home và trang Suggestions --}}
+<script>
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('btn-follow-ig')) {
+        const btn = e.target;
+        const userId = btn.getAttribute('data-user-id');
+
+        fetch(`/users/${userId}/follow`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'followed') {
+                btn.innerText = 'Đang theo dõi';
+                btn.classList.replace('text-primary', 'text-dark');
+            } else {
+                btn.innerText = 'Theo dõi';
+                btn.classList.replace('text-dark', 'text-primary');
+            }
+        });
+    }
+});
+</script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // --- PHẦN 1: GIỮ VỊ TRÍ CUỘN ---

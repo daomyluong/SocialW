@@ -111,10 +111,10 @@ class InteractionController4 extends Controller
     // --- CHỨC NĂNG FOLLOW ---
     public function toggleFollow(User $user)
     {
-        $me = Auth::user() ?? User::find(1); // Giả lập User ID 1
+        $me = Auth::user() ?? User::find(1);
 
         if (!$me || $me->id === $user->id) {
-            return response()->json(['error' => 'Không thể tự theo dõi chính mình'], 400);
+            return response()->json(['error' => 'Không thể tự theo dõi'], 400);
         }
 
         $isFollowing = DB::table('followers')
@@ -122,13 +122,11 @@ class InteractionController4 extends Controller
                         ->where('following_id', $user->id);
 
         if ($isFollowing->exists()) {
-            // Bỏ theo dõi
             $isFollowing->delete();
             $me->decrement('following_count');
             $user->decrement('follower_count');
             $status = 'unfollowed';
         } else {
-            // Theo dõi mới
             DB::table('followers')->insert([
                 'follower_id' => $me->id,
                 'following_id' => $user->id,
@@ -139,14 +137,6 @@ class InteractionController4 extends Controller
             $status = 'followed';
         }
 
-        // Nếu là yêu cầu AJAX thì trả về JSON
-        if (request()->ajax()) {
-            return response()->json([
-                'status' => $status,
-                'user_id' => $user->id
-            ]);
-        }
-
-        return back();
+        return response()->json(['status' => $status]);
     }
 }

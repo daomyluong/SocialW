@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\HomeController4;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PostController3;
 use App\Http\Controllers\InteractionController4;
@@ -52,6 +52,7 @@ Route::get('/', [PostController3::class, 'index'])->name('home');
     Route::post('/posts/{post}/share', [InteractionController4::class, 'share'])->name('posts.share');
     // Follow
     Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
+    Route::get('/suggestions', [HomeController4::class, 'allSuggestions'])->name('users.suggestions');
     
     // xem thêm bình luận
     Route::get('/posts/{post}/load-more-comments', [InteractionController4::class, 'show'])->name('comments.show');
