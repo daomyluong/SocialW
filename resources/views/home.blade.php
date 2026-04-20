@@ -2,6 +2,40 @@
 
 @section('content')
 <div class="container" style="max-width: 600px;">
+
+    @guest
+        <div class="alert alert-light border shadow-sm mb-4 d-flex justify-content-between align-items-center">
+            <span>Chào mừng bạn đến với W-Social!</span>
+            <div>
+                <a href="{{ route('login') }}" class="btn btn-sm btn-outline-primary me-2">Đăng nhập</a>
+                @if (Route::has('register'))
+                    <a href="{{ route('register') }}" class="btn btn-sm btn-primary">Đăng ký</a>
+                @endif
+            </div>
+        </div>
+    @endguest
+
+    <div class="card mb-4 border-0 border-bottom shadow-sm">
+        <div class="card-body d-flex">
+            <div class="avatar me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
+                @auth
+                    <a href="{{ route('profile.show', Auth::id()) }}">
+                        <img src="{{ asset(Auth::user()->avatar_url ?? 'uploads/avatars/default.png') }}" 
+                             class="rounded-circle" width="50" height="50" style="object-fit: cover;">
+                    </a>
+                @else
+                    <div class="bg-light rounded-circle w-100 h-100 d-flex align-items-center justify-content-center">
+                        <i class="fa-solid fa-user fa-xl text-secondary"></i>
+                    </div>
+                @endauth
+            </div>
+            <div class="w-100">
+                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" 
+                       placeholder="Bạn đang nghĩ gì, {{ Auth::check() ? Auth::user()->display_name : 'Đào' }}?">
+                <div class="mt-2 d-flex gap-3 text-primary">
+                    <small role="button"><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
+                    <small role="button"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
+
     {{-- ======================================================= --}}
     {{-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG (NẾU CÓ)                  --}}
     {{-- ======================================================= --}}
@@ -47,12 +81,29 @@
                             <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Đăng</button>
                         </div>
                     </div>
+
                 </div>
             </form>
         </div>
     </div>
 
     <h5 class="fw-bold mb-4">Dành cho bạn</h5>
+
+
+    <div class="post-item mb-4 border-bottom pb-3">
+        <div class="d-flex align-items-center mb-2">
+            <a href="{{ route('profile.show', 2) }}">
+                <img src="https://ui-avatars.com/api/?name=Tuan+MIS&background=0D8ABC&color=fff" class="rounded-circle me-2" width="40" height="40">
+            </a>
+            <div>
+                <span class="fw-bold">tuan_mis</span>
+                <small class="text-muted d-block">2 giờ trước</small>
+            </div>
+        </div>
+        <div class="post-content ps-5">
+            <p>Hệ thống W-Social bắt đầu chạy thử nghiệm Layout hôm nay! Mọi người thấy giao diện mới thế nào? 🚀</p>
+            <div class="rounded-4 overflow-hidden border mb-3">
+                <img src="https://via.placeholder.com/600x400" class="img-fluid w-100" alt="post image">
 
     {{-- ======================================================= --}}
     {{-- PHẦN 2: DANH SÁCH BÀI VIẾT LẤY TỪ DATABASE              --}}
@@ -86,6 +137,7 @@
                     </ul>
                 </div>
                 @endif
+
             </div>
 
             <div class="post-content ps-5">
@@ -189,6 +241,17 @@
     @endforelse
 </div>
 
+
+    <div class="post-item mb-4 border-bottom pb-3">
+        <div class="d-flex align-items-center mb-2">
+            <a href="{{ route('profile.show', 3) }}">
+                <img src="https://ui-avatars.com/api/?name=Lan+HCMUB&background=702963&color=fff" class="rounded-circle me-2" width="40" height="40">
+            </a>
+            <div>
+                <span class="fw-bold">lan_hcmub</span>
+                <small class="text-muted d-block">5 giờ trước</small>
+            </div>
+
 {{-- CSS hỗ trợ phần xem trước ảnh --}}
 <style>
     .preview-box { position: relative; width: 60px; height: 60px; }
@@ -240,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="fw-bold text-secondary m-0" style="font-size: 0.9rem;">Gợi ý cho bạn</h6>
             <a href="{{ route('users.suggestions') }}" class="text-dark fw-bold text-decoration-none" style="font-size: 0.75rem;">Xem tất cả</a>
+
         </div>
 
         @if(isset($suggestedUsers) && $suggestedUsers->count() > 0)
@@ -262,6 +326,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 @endforeach
             </div>
         @endif
+    </div>
+@endsection
+
+
+@section('suggestions')
+    <div class="p-3">
+        @auth
+            
+        @endauth
+        <p class="text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
     </div>
 @endsection
 
@@ -364,3 +438,4 @@ document.addEventListener('click', function(e) {
         }
     });
 </script>
+
