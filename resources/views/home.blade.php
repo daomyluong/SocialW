@@ -3,7 +3,7 @@
 @section('content')
 <div class="container" style="max-width: 600px;">
     {{-- ======================================================= --}}
-    {{-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG (NẾU CÓ)                  --}}
+    {{-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG                           --}}
     {{-- ======================================================= --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" style="border-radius: 15px;" role="alert">
@@ -14,7 +14,38 @@
     @endif
 
     {{-- ======================================================= --}}
-    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH (ĐÃ SỬA LỖI MẤT HÌNH)      --}}
+    {{-- PHẦN STORY (THANH TRƯỢT NGANG)                          --}}
+    {{-- ======================================================= --}}
+    <div class="d-flex overflow-auto py-3 mb-4" style="gap: 15px; scrollbar-width: none; -ms-overflow-style: none;">
+        <style>.d-flex::-webkit-scrollbar { display: none; }</style>
+        
+        <div class="text-center" style="min-width: 75px;">
+            <form action="{{ route('stories3.store') }}" method="POST" enctype="multipart/form-data" id="storyForm3">
+                @csrf
+                <label for="storyInput3" style="cursor: pointer;">
+                    <div class="rounded-circle border border-2 border-primary d-flex align-items-center justify-content-center mb-1" style="width: 65px; height: 65px; border-style: dashed !important;">
+                        <i class="fa-solid fa-plus text-primary fa-lg"></i>
+                    </div>
+                </label>
+                <input type="file" name="media" id="storyInput3" hidden onchange="document.getElementById('storyForm3').submit()">
+            </form>
+            <small class="fw-bold" style="font-size: 0.75rem;">Tin của bạn</small>
+        </div>
+
+        @if(isset($stories))
+            @foreach($stories as $userId => $userStories)
+            <div class="text-center" style="min-width: 75px; cursor: pointer;" onclick="openStoryModal3({{ json_encode($userStories) }})">
+                <div class="rounded-circle p-1 mb-1" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); width: 65px; height: 65px;">
+                    <img src="https://ui-avatars.com/api/?name=User{{ $userId }}&background=random" class="rounded-circle border border-2 border-white w-100 h-100" style="object-fit: cover;">
+                </div>
+                <small class="d-block text-truncate fw-bold" style="font-size: 0.75rem;">User #{{ $userId }}</small>
+            </div>
+            @endforeach
+        @endif
+    </div>
+
+    {{-- ======================================================= --}}
+    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH (GIỮ NGUYÊN CODE CŨ)       --}}
     {{-- ======================================================= --}}
     <div class="card mb-4 border-0 border-bottom">
         <div class="card-body">
@@ -25,25 +56,17 @@
                         <i class="fa-solid fa-user fa-xl text-secondary"></i>
                     </div>
                     <div class="w-100">
-                        {{-- Ô nhập nội dung --}}
                         <input type="text" name="content" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ Auth::user()->display_name ?? 'Thanh' }}?" required>
-                        
                         <input type="hidden" name="visibility" value="public">
-
-                        {{-- KHU VỰC XEM TRƯỚC ẢNH KHI CHỌN --}}
                         <div id="homeImagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
-                        
                         <div class="mt-3 d-flex justify-content-between align-items-center">
                             <div class="d-flex gap-3 text-primary">
-                                {{-- Nút tải ảnh - Quan trọng: Đã đổi tên thành image[] và thêm multiple --}}
                                 <label for="homePostImage" class="mb-0" style="cursor: pointer;">
                                     <small><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
                                 </label>
                                 <input type="file" name="image[]" id="homePostImage" class="d-none" accept="image/*" multiple>
-                                
                                 <small style="cursor: pointer;"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
                             </div>
-                            
                             <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Đăng</button>
                         </div>
                     </div>
@@ -55,21 +78,18 @@
     <h5 class="fw-bold mb-4">Dành cho bạn</h5>
 
     {{-- ======================================================= --}}
-    {{-- PHẦN 2: DANH SÁCH BÀI VIẾT LẤY TỪ DATABASE              --}}
+    {{-- PHẦN 2: DANH SÁCH BÀI VIẾT                              --}}
     {{-- ======================================================= --}}
     @forelse($posts as $post)
         <div class="post-item mb-4 border-bottom pb-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center">
-                    {{-- Avatar người đăng --}}
                     <img src="https://ui-avatars.com/api/?name=User&background=random" class="rounded-circle me-2" width="40" height="40">
                     <div>
                         <span class="fw-bold">User #{{ $post->author_user_id }}</span>
                         <small class="text-muted d-block">{{ $post->created_at->diffForHumans() }}</small>
                     </div>
                 </div>
-
-                {{-- Nút menu sửa/xóa cho chủ bài viết --}}
                 @if(Auth::id() == $post->author_user_id)
                 <div class="dropdown">
                     <button class="btn btn-link text-secondary p-0" data-bs-toggle="dropdown" style="text-decoration: none;">
@@ -90,8 +110,6 @@
 
             <div class="post-content ps-5">
                 <p>{{ $post->content }}</p>
-
-                {{-- HIỂN THỊ HÌNH ẢNH THẬT --}}
                 @if($post->media && $post->media->count() > 0)
                     <div class="rounded-4 overflow-hidden border mb-3">
                         <div class="row g-1">
@@ -103,7 +121,6 @@
                         </div>
                     </div>
                 @endif
-
                 <div class="post-actions d-flex gap-4 text-secondary">
                     <span><i class="fa-regular fa-heart me-1"></i> Thích</span>
                     <span><i class="fa-regular fa-comment me-1"></i> Bình luận</span>
@@ -116,7 +133,37 @@
     @endforelse
 </div>
 
-{{-- CSS hỗ trợ phần xem trước ảnh --}}
+{{-- ======================================================= --}}
+{{-- MODAL XEM STORY (HEADER + SKIP/BACK)                    --}}
+{{-- ======================================================= --}}
+<div class="modal fade" id="storyModal3" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-0">
+            <div class="modal-body p-0 position-relative text-center">
+                <div class="progress position-absolute top-0 start-0 w-100" style="height: 4px; z-index: 1010; border-radius: 0;">
+                    <div id="storyProgressBar3" class="progress-bar bg-white" style="width: 0%"></div>
+                </div>
+
+                <div class="position-absolute top-0 start-0 w-100 d-flex align-items-center p-3 mt-2" style="z-index: 1008;">
+                    <img id="storyUserAvatar3" src="" class="rounded-circle border border-1 border-white me-2" width="40" height="40" style="object-fit: cover;">
+                    <div class="text-start text-white">
+                        <div id="storyUserName3" class="fw-bold shadow-sm" style="font-size: 0.9rem; text-shadow: 1px 1px 2px black;"></div>
+                        <small id="storyTime3" class="text-white-50 shadow-sm" style="font-size: 0.75rem; text-shadow: 1px 1px 2px black;"></small>
+                    </div>
+                </div>
+
+                <div onclick="prevStory3(event)" class="position-absolute start-0 top-0 h-100" style="width: 30%; z-index: 1005; cursor: pointer;"></div>
+                <div onclick="nextStory3(event)" class="position-absolute end-0 top-0 h-100" style="width: 70%; z-index: 1005; cursor: pointer;"></div>
+
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1009;"></button>
+                
+                <div id="storyMediaContainer3" class="d-flex align-items-center justify-content-center bg-black" style="min-height: 500px; height: 100vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .preview-box { position: relative; width: 60px; height: 60px; }
     .preview-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
@@ -127,9 +174,82 @@
     }
 </style>
 
-{{-- SCRIPT xử lý chọn và xem trước ảnh (giúp input file luôn đúng định dạng) --}}
 <script>
+let storyInterval3;
+let currentStoryIdx = 0;
+let currentUserStories = [];
+
+function openStoryModal3(userStories) {
+    currentUserStories = userStories;
+    currentStoryIdx = 0;
+    renderSingleStory();
+    const modal = new bootstrap.Modal(document.getElementById('storyModal3'));
+    modal.show();
+}
+
+function renderSingleStory() {
+    const story = currentUserStories[currentStoryIdx];
+    const container = document.getElementById('storyMediaContainer3');
+    const progressBar = document.getElementById('storyProgressBar3');
+    
+    // Cập nhật Header
+    document.getElementById('storyUserName3').innerText = story.user ? (story.user.username || story.user.name) : 'User #' + story.user_id;
+    document.getElementById('storyUserAvatar3').src = `https://ui-avatars.com/api/?name=User${story.user_id}&background=random`;
+    
+    const postDate = new Date(story.created_at);
+    document.getElementById('storyTime3').innerText = postDate.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    container.innerHTML = ''; 
+    progressBar.style.width = '0%';
+    clearInterval(storyInterval3);
+
+    if (story.type === 'video') {
+        container.innerHTML = `<video src="${story.media_url}" autoplay muted playsinline style="max-width: 100%; max-height: 100vh;"></video>`;
+    } else {
+        container.innerHTML = `<img src="${story.media_url}" style="max-width: 100%; max-height: 100vh; object-fit: contain;">`;
+    }
+
+    let percent = 0;
+    storyInterval3 = setInterval(() => {
+        percent += 1;
+        progressBar.style.width = percent + '%';
+        if (percent >= 100) {
+            clearInterval(storyInterval3);
+            nextStory3();
+        }
+    }, 100); // 10 giây
+}
+
+function nextStory3(event) {
+    if(event) event.stopPropagation();
+    clearInterval(storyInterval3);
+    currentStoryIdx++;
+    if (currentStoryIdx < currentUserStories.length) {
+        renderSingleStory();
+    } else {
+        const modalEl = document.getElementById('storyModal3');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+    }
+}
+
+function prevStory3(event) {
+    if(event) event.stopPropagation();
+    clearInterval(storyInterval3);
+    currentStoryIdx--;
+    if (currentStoryIdx < 0) {
+        currentStoryIdx = 0; 
+    }
+    renderSingleStory();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('storyModal3').addEventListener('hidden.bs.modal', () => {
+        clearInterval(storyInterval3);
+        document.getElementById('storyMediaContainer3').innerHTML = '';
+    });
+
+    // Preview ảnh bài đăng
     const inp = document.getElementById('homePostImage');
     const pre = document.getElementById('homeImagePreview');
     let dt = new DataTransfer();
@@ -169,39 +289,24 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="d-flex flex-column gap-3">
                 @foreach($suggestedUsers as $user)
                     <div class="d-flex align-items-center justify-content-between">
-                        
                         <div class="d-flex align-items-center">
-                            {{-- Sử dụng ảnh avatar mẫu hoặc avatar thật từ DB --}}
                             <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" 
-                                 class="rounded-circle me-2" 
-                                 width="40" height="40" 
-                                 alt="{{ $user->username }}">
-                            
+                                 class="rounded-circle me-2" width="40" height="40">
                             <div class="d-flex flex-column">
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                    {{ $user->username }}
-                                </span>
-                                <span class="text-muted" style="font-size: 0.8rem;">
-                                    {{ $user->display_name }}
-                                </span>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->username }}</span>
+                                <span class="text-muted" style="font-size: 0.8rem;">{{ $user->display_name }}</span>
                             </div>
                         </div>
-
                         <div>
-                            {{-- Tái sử dụng component nút Follow của bạn, hoặc dùng trực tiếp Form ở đây --}}
                             <form action="{{ route('users.follow', $user->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">
-                                    Theo dõi
-                                </button>
+                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">Theo dõi</button>
                             </form>
                         </div>
-
                     </div>
                 @endforeach
             </div>
         @else
-            {{-- Hiển thị nếu không có dữ liệu hoặc đã follow hết mọi người --}}
             <p class="text-muted small">Hiện chưa có gợi ý mới nào.</p>
         @endif
     </div>

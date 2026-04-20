@@ -148,14 +148,19 @@ public function store(Request $request)
 }
     public function index()
 {
-    // Lấy dữ liệu bài viết
+    // 1. Lấy dữ liệu bài viết 
     $posts = \App\Models\Post::where('is_deleted', 0)
                 ->with('media')
                 ->latest()
                 ->get();
 
-    // Trả về file home của Lead, kèm theo biến $posts của bạn
-    return view('home', compact('posts'));
+    // 2. Lấy dữ liệu Story trong vòng 24h qua
+    $stories = \App\Models\Story3::active24h()
+                ->with('user') // Lấy thông tin người đăng để hiện avatar
+                ->latest()
+                ->get()
+                ->groupBy('user_id'); // Nhóm lại theo từng người dùng
+    return view('home', compact('posts', 'stories'));
 }
     public function notifications()
 {

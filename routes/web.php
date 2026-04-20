@@ -47,6 +47,8 @@ Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.upda
 Route::get('/', [PostController3::class, 'index'])->name('home');
    // Route xem danh sách thông báo
 Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
+    // Route để xử lý đăng Story mới
+Route::post('/stories3', [App\Http\Controllers\StoryController3::class, 'store'])->name('stories3.store');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 
 
