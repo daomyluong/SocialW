@@ -75,10 +75,11 @@
             @foreach($post->media as $media)
                 {{-- Nếu có 1 ảnh thì hiện full, nếu nhiều hơn thì chia đôi --}}
                 <div class="{{ $post->media->count() == 1 ? 'col-12' : 'col-6' }}">
-                    <img src="{{ asset($media->url) }}" 
-                         class="img-fluid w-100" 
-                         style="height: {{ $post->media->count() > 1 ? '200px' : 'auto' }}; object-fit: cover;" 
-                         alt="Ảnh bài viết">
+                    @if($post->media->count() > 1)
+                        <img src="{{ asset($media->url) }}" class="img-fluid w-100" style="height: 200px; object-fit: cover;" alt="Ảnh bài viết">
+                    @else
+                        <img src="{{ asset($media->url) }}" class="img-fluid w-100" style="object-fit: cover;" alt="Ảnh bài viết">
+                    @endif
                 </div>
             @endforeach
         </div>

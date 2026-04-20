@@ -27,7 +27,8 @@ public function store(Request $request)
         // 2. Tạo bài viết mới
         // Lưu ý: Đảm bảo 'author_user_id' khớp với id người dùng (đang để mặc định là 1)
         $post = Post::create([
-            'author_user_id' => auth()->id() ?? 1, 
+            
+            'author_user_id' => 1, 
             'content' => $request->content,
             'visibility' => $request->visibility ?? 'public',
             'is_deleted' => 0
@@ -41,7 +42,7 @@ public function store(Request $request)
 
                 // Tạo bản ghi trong bảng media
                 $media = Media::create([
-                    'owner_user_id' => auth()->id() ?? 1,
+                    'owner_user_id' => 1,
                     'type' => 'image',
                     'url' => 'uploads/posts/' . $fileName,
                     'filename' => $fileName,
@@ -65,7 +66,7 @@ public function store(Request $request)
     public function myPosts()
     {
         // 1. Lấy ID của người dùng đang đăng nhập
-        $userId = 1; // Thay bằng Auth::id() khi có hệ thống đăng nhập
+        $userId = 1;
 
         // 2. Lấy ra những bài viết của người dùng đó, kèm theo thông tin ảnh
         $posts = \App\Models\Post::where('author_user_id', $userId)
@@ -81,15 +82,21 @@ public function store(Request $request)
     public function destroy($id)
     {
         $post = \App\Models\Post::findOrFail($id);
-        $post->update([
-        'is_deleted' => 1
-    ]);
+        // Kiểm tra xem người dùng có phải là tác giả không
+        if ($post->author_user_id !== 1) {
+            return back()->with('error', 'Bạn không có quyền xóa bài viết này!');
+        }
+        $post->update(['is_deleted' => 1]);
         return back()->with('success', 'Đã xóa bài viết!');
     }
 
     // 1. Hàm hiện form edit
     public function edit($id) {
         $post = \App\Models\Post::findOrFail($id);
+        // Kiểm tra xem người dùng có phải là tác giả không
+        if ($post->author_user_id !== 1) {
+            return back()->with('error', 'Bạn không có quyền chỉnh sửa bài viết này!');
+        }
         return view('posts3.edit3', compact('post'));
     }
 
@@ -98,12 +105,18 @@ public function store(Request $request)
 {
     // 1. Tìm bài viết
     $post = Post::findOrFail($id);
+    
+    // Kiểm tra xem người dùng có phải là tác giả không
+    if ($post->author_user_id !== 1) {
+        return back()->with('error', 'Bạn không có quyền cập nhật bài viết này!');
+    }
 
     // 2. Cập nhật nội dung chữ và quyền riêng tư
     $post->update([
         'content' => $request->content,
         'visibility' => $request->visibility,
-        'updated_at' => now()
+        'updated_at' => now(),
+        'is_edited' => 1
     ]);
 
     // 3. Xử lý ảnh (Nếu người dùng có chọn ảnh mới)
@@ -119,7 +132,7 @@ public function store(Request $request)
 
             // Lưu vào bảng media
             $media = Media::create([
-                'owner_user_id' => auth()->id() ?? 1,
+                'owner_user_id' => 1,
                 'type' => 'image',
                 'url' => 'uploads/posts/' . $fileName,
                 'filename' => $fileName,

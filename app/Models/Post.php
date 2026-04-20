@@ -13,7 +13,8 @@ class Post extends Model
         'author_user_id', 
         'content', 
         'visibility', 
-        'is_deleted'
+        'is_deleted' ,
+        'is_edited'
     ];
 
     // 3.Một bài viết thuộc về một người dùng 
@@ -25,4 +26,5 @@ class Post extends Model
     public function media() {
         return $this->belongsToMany(Media::class, 'post_media', 'post_id', 'media_id');
     }
+    
 }

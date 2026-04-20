@@ -38,5 +38,7 @@ Route::delete('/posts/{id}', [PostController3::class, 'destroy'])->name('posts3.
 Route::get('/posts/{id}/edit', [PostController3::class, 'edit'])->name('posts3.edit');
     // Route Sửa - 2: Lưu dữ liệu (Không cần file giao diện)
 Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
+
+Route::get('/', [PostController3::class, 'index'])->name('home');
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
