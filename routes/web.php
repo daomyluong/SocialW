@@ -62,6 +62,7 @@ Route::get('/profile/{id}', [ProfileController::class, 'show'])
     ->whereNumber('id')
     ->name('profile.show');
 // TV 3 (THANH) - BÀI VIẾT (POSTS)
+Route::get('/post/{id}', [AdminController5::class, 'showPost'])->name('post.show');
     // Đường dẫn để hiện form đăng bài
     Route::get('/posts/create', [PostController3::class, 'create'])->name('posts3.create');
     
@@ -92,11 +93,6 @@ Route::post('/bookmarks/toggle/{postId}', [BookmarkController3::class, 'toggleBo
 // Route để vào trang xem danh sách đã lưu
 Route::get('/bookmarks', [BookmarkController3::class, 'index'])->name('bookmarks.index');
 Route::get('/bookmarks/folders', [BookmarkController3::class, 'getFolders']);
-
-
-
-
-
 // TV 4 (QUỲNH) - TƯƠNG TÁC (SOCIAL)
 
 // TV 5 (LINH) - QUẢN TRỊ (ADMIN)
@@ -131,6 +127,8 @@ Route::prefix('admin')->group(function () {
 
     // 2. QUẢN LÝ NGƯỜI DÙNG 
     Route::get('/users', [AdminController5::class, 'manageUsers'])->name('admin.users.index');
+    Route::post('/users', [AdminController5::class, 'storeUser'])->name('admin.users.store');
+    Route::post('/users/{id}/update-role', [AdminController5::class, 'updateUserRole'])->name('admin.users.update_role');
     // Route xử lý Khóa/Mở khóa tài khoản (Dùng POST để bảo mật)
     Route::post('/users/{id}/toggle-status', [AdminController5::class, 'toggleUserStatus'])->name('admin.users.toggle_status');
     // Route xử lý Xóa mềm tài khoản
@@ -138,6 +136,7 @@ Route::prefix('admin')->group(function () {
     
     // 3. QUẢN LÝ BÀI VIẾT 
     Route::get('/posts', [AdminController5::class, 'managePosts'])->name('admin.posts.index');
+    Route::post('/posts/{id}/moderate', [AdminController5::class, 'moderatePost'])->name('admin.posts.moderate');
     Route::post('/posts/{id}/delete', [AdminController5::class, 'deletePost'])->name('admin.posts.delete');
 
     // 4. QUẢN LÝ BÌNH LUẬN (COMMENTS)
@@ -150,7 +149,4 @@ Route::prefix('admin')->group(function () {
     // Route xử lý thao tác (Phán quyết) của Admin
     Route::post('/reports/process', [AdminController5::class, 'processReport'])->name('admin.reports.process');
 });
-// Giữ lại cái tên 'home' này để nút "Quay lại W-Social" không bị lỗi
-// (Khi nào Leader làm xong trang chủ thì mình sẽ xóa dòng này đi sau)
-//Route::get('/home-test', function () { return "Đây là trang chủ"; })->name('home');
 
