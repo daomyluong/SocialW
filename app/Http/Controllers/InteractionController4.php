@@ -9,13 +9,16 @@ use App\Models\Comment4;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Models\Notification;
-use App\Models\Post;
+
 class InteractionController4 extends Controller
 {
     // --- CHỨC NĂNG LIKE ---
     public function like(Post $post)
     {
-        $userId = 1;
+        $userId = Auth::id();
+        if (! $userId) {
+            return redirect()->route('login');
+        }
         
         // Kiểm tra xem đã like chưa (Tra cứu trong bảng post_likes từ file social.sql)
         $like = DB::table('post_likes')
@@ -29,9 +32,21 @@ class InteractionController4 extends Controller
             DB::table('post_likes')->insert([
                 'post_id' => $post->id,
                 'user_id' => $userId,
-                'created_at' => now()
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             $post->increment('like_count');
+
+            if ((int) $post->author_user_id !== (int) $userId) {
+                Notification::create([
+                    'user_id' => $post->author_user_id,
+                    'sender_id' => $userId,
+                    'post_id' => $post->id,
+                    'type' => 'like',
+                    'message' => 'đã thích bài viết của bạn',
+                    'is_read' => 0,
+                ]);
+            }
         }
 
         return redirect()->to(url()->previous() . '#post-' . $post->id);    
@@ -40,15 +55,32 @@ class InteractionController4 extends Controller
     // --- CHỨC NĂNG BÌNH LUẬN ---
     public function comment(Request $request, Post $post)
     {
+        $userId = Auth::id();
+        if (! $userId) {
+            return redirect()->route('login');
+        }
+
         $request->validate(['content' => 'required']);
 
         Comment4::create([
             'post_id' => $post->id,
-            'author_user_id' => 1,
+            'user_id' => $userId,
             'content' => $request->input('content'),
         ]);
 
         $post->increment('comment_count'); // Cập nhật thống kê bài viết
+
+        if ((int) $post->author_user_id !== (int) $userId) {
+            Notification::create([
+                'user_id' => $post->author_user_id,
+                'sender_id' => $userId,
+                'post_id' => $post->id,
+                'type' => 'comment',
+                'message' => 'đã bình luận về bài viết của bạn',
+                'is_read' => 0,
+            ]);
+        }
+
         return redirect()->to(url()->previous() . '#post-' . $post->id);
     }
 
@@ -78,7 +110,7 @@ class InteractionController4 extends Controller
     public function destroyComment(Comment4 $comment)
     {
         // Kiểm tra quyền: Chủ comment HOẶC Admin (ID = 1) mới được xóa
-        if (Auth::id() == $comment->author_user_id || Auth::id() == 1) {
+        if (Auth::id() == $comment->user_id || Auth::id() == 1) {
             $comment->delete();
             Post::find($comment->post_id)?->decrement('comment_count');
         }
@@ -93,7 +125,10 @@ class InteractionController4 extends Controller
             'comment' => 'nullable|string|max:500' // Lời nhắn khi share
         ]);
 
-        $userId = 1; // Giả lập bạn là Admin (ID=1) theo file SQL
+        $userId = Auth::id();
+        if (! $userId) {
+            return redirect()->route('login');
+        }
 
         // Lưu vào bảng post_shares theo đúng cấu trúc SQL của bạn
         \Illuminate\Support\Facades\DB::table('post_shares')->insert([
@@ -101,10 +136,22 @@ class InteractionController4 extends Controller
             'post_id'    => $post->id,
             'comment'    => $request->comment, // Lời nhắn (ví dụ: "Gửi cho @tuannguyen")
             'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         // Tăng số lượng share_count ở bảng posts
         $post->increment('share_count');
+
+        if ((int) $post->author_user_id !== (int) $userId) {
+            Notification::create([
+                'user_id' => $post->author_user_id,
+                'sender_id' => $userId,
+                'post_id' => $post->id,
+                'type' => 'share',
+                'message' => 'đã chia sẻ bài viết của bạn',
+                'is_read' => 0,
+            ]);
+        }
 
         return redirect()->to(url()->previous() . '#post-' . $post->id) -> with('success', 'Bạn đã chia sẻ bài viết lên tường thành công!');
     }
@@ -112,15 +159,21 @@ class InteractionController4 extends Controller
     // --- CHỨC NĂNG FOLLOW ---
     public function toggleFollow(User $user)
     {
-        $me = Auth::user() ?? User::find(1);
+        $request = request();
+        $authId = Auth::id();
+        $me = $authId ? User::find($authId) : null;
 
         if (!$me || $me->id === $user->id) {
-            return response()->json(['error' => 'Không thể tự theo dõi'], 400);
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Không thể tự theo dõi'], 400);
+            }
+
+            return back()->with('error', 'Không thể tự theo dõi.');
         }
 
         $isFollowing = DB::table('followers')
-                        ->where('follower_id', $me->id)
-                        ->where('following_id', $user->id);
+                        ->where('follower_user_id', $me->id)
+                        ->where('following_user_id', $user->id);
 
         if ($isFollowing->exists()) {
             $isFollowing->delete();
@@ -129,20 +182,29 @@ class InteractionController4 extends Controller
             $status = 'unfollowed';
         } else {
             DB::table('followers')->insert([
-                'follower_id' => $me->id,
-                'following_id' => $user->id,
-                'created_at' => now()
+                'follower_user_id' => $me->id,
+                'following_user_id' => $user->id,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             $me->increment('following_count');
             $user->increment('follower_count');
             $status = 'followed';
         }
 
-        return response()->json(['status' => $status]);
+        if ($request->expectsJson()) {
+            return response()->json(['status' => $status]);
+        }
+
+        return back()->with('success', $status === 'followed' ? 'Đã theo dõi người dùng.' : 'Đã hủy theo dõi người dùng.');
     }
     public function likePost(Post $post)
 {
-    $userId = 1; 
+        $userId = Auth::id();
+        if (! $userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
     $likeQuery = DB::table('post_likes')->where('post_id', $post->id)->where('user_id', $userId);
 
     if ($likeQuery->exists()) {
@@ -153,7 +215,8 @@ class InteractionController4 extends Controller
         DB::table('post_likes')->insert([
             'post_id' => $post->id,
             'user_id' => $userId,
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
         $liked = true;
         $post->increment('like_count');
@@ -162,10 +225,11 @@ class InteractionController4 extends Controller
         if ($post->author_user_id != $userId) {
             \App\Models\Notification::create([
                 'user_id'   => $post->author_user_id,
-                'actor_user_id' => $userId,
+                'sender_id' => $userId,
                 'post_id'   => $post->id,
                 'type'      => 'like',
                 'message'   => 'đã thích bài viết của bạn',
+                'is_read'   => 0,
             ]);
         }
     }

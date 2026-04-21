@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -41,17 +40,17 @@ class RegisteredUserController extends Controller
 
 // ...
 
-     $user = User::create([
-        'display_name' => $request->display_name,
-        'username'     => $request->username,
-        'email'        => $request->email,
-        'password_hash' => Hash::make($request->password), // Thêm dòng này để lưu mật khẩu
+        $user = User::create([
+            'name' => $request->display_name,
+            'display_name' => $request->display_name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'password_hash' => Hash::make($request->password),
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->route('login');
     }
 }

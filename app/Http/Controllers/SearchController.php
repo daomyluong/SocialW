@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -11,6 +12,36 @@ use Throwable;
 
 class SearchController extends Controller
 {
+    public function mentionSuggestions(Request $request): JsonResponse
+    {
+        $query = trim((string) $request->query('q', ''));
+
+        try {
+            $users = User::query()
+                ->select(['id', 'username', 'display_name', 'avatar_url'])
+                ->when($query !== '', function ($builder) use ($query): void {
+                    $builder->where(function ($q) use ($query): void {
+                        $q->where('username', 'like', "%{$query}%")
+                            ->orWhere('display_name', 'like', "%{$query}%");
+                    });
+                })
+                ->whereNotNull('username')
+                ->limit(8)
+                ->get();
+        } catch (QueryException|Throwable) {
+            $users = collect();
+        }
+
+        return response()->json([
+            'data' => $users->map(fn (User $user): array => [
+                'id' => $user->id,
+                'username' => (string) $user->username,
+                'display_name' => (string) ($user->display_name ?? $user->username),
+                'avatar_url' => $user->avatar_url,
+            ])->values(),
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $query = trim((string) $request->query('query', ''));

@@ -30,14 +30,19 @@
                               rows="5" 
                               placeholder="Bạn đang nghĩ gì thế?" 
                               style="border-radius: 12px; resize: none;" 
-                              required></textarea>
+                              ></textarea>
                 </div>
 
-                {{-- Khu vực tải ảnh --}}
+                {{-- Khu vực tải ảnh / video --}}
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-uppercase text-muted">Thêm hình ảnh</label>
                     <div class="image-upload-wrapper">
                         <input type="file" name="image[]" id="postImage" multiple class="form-control" accept="image/*">
+
+                        <div class="mt-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Thêm video</label>
+                            <input type="file" name="video[]" id="postVideo" multiple class="form-control" accept="video/*">
+                        </div>
                         
                         {{-- Khung chứa ảnh xem trước --}}
                         <div id="imagePreview" class="d-flex flex-wrap gap-3 mt-3"></div>
@@ -155,6 +160,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const postImage = document.getElementById('postImage');
+    const postVideo = document.getElementById('postVideo');
     const previewContainer = document.getElementById('imagePreview');
     
     // Mảng lưu trữ các file thực tế sẽ được gửi đi
@@ -208,6 +214,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Cập nhật lại input file bằng danh sách trong dt
         postImage.files = dt.files;
     });
+
+    if (postVideo) {
+        postVideo.addEventListener('change', function() {
+            // Video không có preview riêng ở form này; chỉ giữ lại lựa chọn file.
+        });
+    }
 });
 </script>
 @endsection

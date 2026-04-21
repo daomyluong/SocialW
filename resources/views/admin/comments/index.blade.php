@@ -61,7 +61,7 @@
                             </div>
                         </td>
                         <td>
-                            <a href="#" class="post-ref" title="{{ $comment->post_content }}">
+                            <a href="{{ route('posts3.show', $comment->post_id) }}" class="post-ref" title="{{ $comment->post_content }}">
                                 <i class="fa-solid fa-link me-1"></i> {{ $comment->post_content }}
                             </a>
                         </td>
@@ -71,7 +71,7 @@
                             </span>
                         </td>
                         <td class="text-end px-4">
-                            <a href="#" class="action-btn bg-soft-blue text-primary me-1" title="Xem tại bài viết"><i class="fa-solid fa-up-right-from-square"></i></a>
+                            <a href="{{ route('posts3.show', $comment->post_id) }}" class="action-btn bg-soft-blue text-primary me-1" title="Xem tại bài viết"><i class="fa-solid fa-up-right-from-square"></i></a>
                             
                             @if(isset($comment->user_status) && $comment->user_status == 1)
                             <form action="{{ route('admin.comments.quick_ban', $comment->author_user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Khóa tài khoản người này ngay lập tức?');">

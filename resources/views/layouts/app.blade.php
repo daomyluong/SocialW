@@ -85,13 +85,12 @@
             <a class="nav-link {{ Route::is('search') ? 'active' : '' }}" href="{{ route('search') }}">
                 <i class="fa-solid fa-magnifying-glass me-3"></i> Tìm kiếm
             </a>
-           <a class="nav-link text-dark" href="{{ route('notifications.index') }}">
-    <i class="fa-regular fa-heart me-3"></i> Thông báo
-</a>
+            <a class="nav-link {{ Route::is('notifications.index') ? 'active' : '' }}" href="{{ route('notifications.index') }}">
+                <i class="fa-regular fa-heart me-3"></i> Thông báo
+            </a>
             <a class="nav-link {{ Route::is('messages.*') ? 'active' : '' }}" href="{{ route('messages.index') }}">
                 <i class="fa-regular fa-comments me-3"></i> Nhắn tin
             </a>
-            <a class="nav-link text-dark" href="#"><i class="fa-regular fa-heart me-3"></i> Thông báo</a>
             <a class="nav-link {{ Route::is('posts3.create') ? 'active' : '' }}" href="{{ route('posts3.create') }}">
                 <i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết
             </a>
@@ -111,29 +110,47 @@
         </form>
 
         <div class="user-area dropdown">
-            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="userDropdown" data-bs-toggle="dropdown">
-                <div class="text-end me-3 d-none d-sm-block">
-                    <div class="fw-bold">{{ auth()->user()?->display_name ?? 'Lương Mỵ Đào' }}</div>
-                    <small class="text-muted">{{ auth()->user()?->username ?? 'guest' }}</small>
-                </div>
-                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                    <i class="fa-solid fa-user"></i>
-                </div>
-            </a>
+            @auth
+                <button type="button" class="btn d-flex align-items-center text-decoration-none dropdown-toggle text-dark p-0 border-0 bg-transparent" id="userDropdown" data-bs-toggle="dropdown">
+                    <div class="text-end me-3 d-none d-sm-block">
+                        <div class="fw-bold">{{ auth()->user()?->display_name ?? auth()->user()?->name ?? 'Bạn' }}</div>
+                        <small class="text-muted">{{ auth()->user()?->username }}</small>
+                    </div>
+                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </button>
 
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
-                <li><a class="dropdown-item py-2 text-primary fw-bold" href="#"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="dropdown-item py-2 text-danger" style="border: none; background: none; width: 100%; text-align: left;">
-                            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất
-                        </button>
-                    </form>
-                </li>
-            </ul>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
+                    @php
+                        $currentUser = auth()->user();
+                        $currentRole = strtolower(trim((string) data_get($currentUser, 'role', 'member')));
+                        $canAccessAdmin = $currentUser && (
+                            $currentRole === 'admin' ||
+                            $currentRole === 'administrator' ||
+                            $currentUser->can('access-admin')
+                        );
+                    @endphp
+                    @if($canAccessAdmin)
+                        <li><a class="dropdown-item py-2 text-primary fw-bold" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
+                    @endif
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="dropdown-item py-2 text-danger" style="border: none; background: none; width: 100%; text-align: left;">
+                                <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            @else
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('login') }}" class="btn btn-outline-primary btn-sm">Đăng nhập</a>
+                    <a href="{{ route('register') }}" class="btn btn-primary btn-sm">Đăng ký</a>
+                </div>
+            @endauth
         </div>
     </div>
 

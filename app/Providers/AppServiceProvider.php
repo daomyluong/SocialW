@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Post;
+use App\Models\User;
+use App\Policies\PostPolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,7 +24,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-    
+        Gate::policy(Post::class, PostPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+
+        Gate::define('access-admin', function (User $user): bool {
+            return strtolower(trim((string) ($user->role ?? 'member'))) === 'admin';
+        });
     }
     public const HOME = '/';
 }

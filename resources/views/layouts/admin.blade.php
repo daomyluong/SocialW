@@ -98,10 +98,10 @@
             </a>
             <hr>
             <h6 class="text-muted px-3" style="font-size: 0.8rem;">MỞ RỘNG</h6>
-            <a class="nav-link text-muted opacity-50" href="#" style="cursor: not-allowed;">
+            <span class="nav-link text-muted opacity-50" style="cursor: not-allowed;">
                 <i class="fa-solid fa-bullhorn me-3"></i> Thông báo hệ thống
-            </a>
-            <a class="nav-link text-muted opacity-50" href="#" style="cursor: not-allowed;">
+            </span>
+            <a class="nav-link {{ Route::is('admin.reports.*') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}">
                 <i class="fa-solid fa-flag me-3"></i> Quản lý Báo cáo
             </a>
             {{-- Link QUAY LẠI TRANG CHỦ như cậu yêu cầu --}}
@@ -116,17 +116,22 @@
         <h5 class="fw-bold mb-0">@yield('admin_title')</h5>
 
         <div class="user-area dropdown">
-            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" data-bs-toggle="dropdown">
+            <button type="button" class="btn d-flex align-items-center text-decoration-none dropdown-toggle text-dark p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
                 <span class="me-3 fw-bold">Admin: {{ Auth::user()?->display_name ?? 'Quản Trị Viên' }}</span>
                 <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                     <i class="fa-solid fa-user-gear"></i>
                 </div>
-            </a>
+            </button>
             
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                <li><a class="dropdown-item py-2" href="#"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ Admin</a></li>
+                <li><a class="dropdown-item py-2" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ Admin</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item py-2 text-danger" href="#"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất</a></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="dropdown-item py-2 text-danger"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng xuất</button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>

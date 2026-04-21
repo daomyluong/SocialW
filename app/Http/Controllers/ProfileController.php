@@ -2,37 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProfileController extends Controller
 {
     public function index(): View
     {
         return view('profile');
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use App\Models\User;
+    }
 
-class ProfileController extends Controller
-{
-    /**
-     * Hiển thị trang cá nhân (Show)
-     */
-    public function show($id = null)
+    public function show(?int $id = null): View|RedirectResponse
     {
-        if ($id) {
-            $user = User::findOrFail($id);
-        } else {
-            $user = Auth::user();
-        }
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
 
-        if (!$user) {
+        $user = $id ? User::findOrFail($id) : Auth::user();
+
+        if (! $user) {
             return redirect()->route('login');
         }
 
-        $isOwnProfile = Auth::check() && Auth::id() === $user->id;
+        $isOwnProfile = (bool) $authUser && (int) $authUser->id === (int) $user->id;
 
         $postCount = Schema::hasTable('posts')
             ? DB::table('posts')
@@ -47,74 +43,80 @@ class ProfileController extends Controller
         return view('profile.show', compact('user', 'isOwnProfile', 'postCount', 'followingCount', 'followerCount'));
     }
 
-    /**
-     * Hiển thị form chỉnh sửa (Edit)
-     */
-    public function edit()
+    public function edit(): View|RedirectResponse
     {
+        /** @var User|null $user */
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return redirect()->route('login');
         }
 
         return view('profile.edit', compact('user'));
     }
 
-    /**
-     * Xử lý cập nhật thông tin (Update)
-     */
-    public function update(Request $request)
+    public function update(Request $request, ?int $id = null): RedirectResponse
     {
-        $user = Auth::user();
+        /** @var User|null $user */
+        $authUser = Auth::user();
 
-        // Kiểm tra dữ liệu (Validation) bao gồm cả avatar và bio
+        $user = $id ? User::findOrFail($id) : $authUser;
+
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        if (! $authUser) {
+            return redirect()->route('login');
+        }
+
+        $this->authorize('update', $user);
+
         $request->validate([
             'display_name' => 'required|string|max:100',
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // 1. Xử lý upload ảnh đại diện (nếu có chọn file mới)
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
-            $fileName = time() . '_' . $file->getClientOriginalName();
+            $fileName = time().'_'.$file->getClientOriginalName();
             $file->move(public_path('uploads/avatars'), $fileName);
+
             if (Schema::hasColumn('users', 'avatar_url')) {
-                $user->avatar_url = 'uploads/avatars/' . $fileName;
+                $user->avatar_url = 'uploads/avatars/'.$fileName;
             }
         }
 
-        // 2. Cập nhật các thông tin văn bản từ form
-        $user->display_name = $request->display_name;
-        $user->bio = $request->bio; // Thêm dòng này để lưu tiểu sử vào DB
-
-        // 3. Lưu vào Database
+        $user->display_name = $request->string('display_name');
+        $user->bio = $request->string('bio')->toString();
         $user->save();
 
-        // Chuyển hướng về trang profile kèm thông báo thành công
         return redirect()->route('profile.show', $user->id)->with('success', 'Cập nhật thành công!');
     }
 
-    /**
-     * Theo dõi hoặc bỏ theo dõi người dùng (Follow)
-     */
-    public function follow(Request $request, $id)
+    public function follow(Request $request, int $id): RedirectResponse
     {
+        /** @var User|null $currentUser */
         $currentUser = Auth::user();
         $targetUser = User::findOrFail($id);
 
-        if ($currentUser->id === $targetUser->id) {
+        if (! $currentUser) {
+            return redirect()->route('login');
+        }
+
+        if ((int) $currentUser->id === (int) $targetUser->id) {
             return back()->with('error', 'Không thể theo dõi chính mình!');
         }
 
-        // Logic follow - tạm thời chỉ tăng follower_count (cần tạo bảng followers sau)
-        if (!$currentUser->following()->where('following_user_id', $targetUser->id)->exists()) {
-            // Follow
+        $alreadyFollowing = $currentUser->following()->where('following_user_id', $targetUser->id)->exists();
+
+        if (! $alreadyFollowing) {
+            $currentUser->following()->attach($targetUser->id);
             $targetUser->increment('follower_count');
             $currentUser->increment('following_count');
         } else {
-            // Unfollow
+            $currentUser->following()->detach($targetUser->id);
             $targetUser->decrement('follower_count');
             $currentUser->decrement('following_count');
         }

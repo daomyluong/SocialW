@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Post extends Model
 {
     use HasFactory;
+
+    protected $table = 'posts';
 
     protected $fillable = [
         'author_user_id',
@@ -16,14 +20,17 @@ class Post extends Model
         'media_id',
         'like_count',
         'comment_count',
+        'share_count',
         'visibility',
         'is_deleted',
+        'is_edited',
     ];
 
     protected function casts(): array
     {
         return [
             'is_deleted' => 'boolean',
+            'is_edited' => 'boolean',
         ];
     }
 
@@ -31,34 +38,19 @@ class Post extends Model
     {
         return $this->belongsTo(User::class, 'author_user_id');
     }
-use Illuminate\Database\Eloquent\Model;
 
-class Post extends Model
-{
-    protected $table = 'posts';
-
-    // 2. Danh sách các cột được phép thêm dữ liệu
-    protected $fillable = [
-        'author_user_id', 
-        'content', 
-        'visibility', 
-        'is_deleted' ,
-        'is_edited'
-    ];
-
-    // 3.Một bài viết thuộc về một người dùng 
-    public function user() {
-        return $this->belongsTo(User::class, 'author_user_id');
+    public function user(): BelongsTo
+    {
+        return $this->author();
     }
 
-    // 4. Một bài viết có nhiều ảnh qua bảng trung gian
-    public function media() {
+    public function media(): BelongsToMany
+    {
         return $this->belongsToMany(Media::class, 'post_media', 'post_id', 'media_id');
     }
 
-    // 5. Một bài viết có nhiều bình luận
-    public function comments() {
+    public function comments(): HasMany
+    {
         return $this->hasMany(Comment4::class, 'post_id');
     }
-    
 }

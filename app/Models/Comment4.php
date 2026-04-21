@@ -13,8 +13,7 @@ class Comment4 extends Model
 
     protected $fillable = [
         'post_id',
-        'author_user_id',
-        'parent_comment_id',
+        'user_id',
         'content',
         'is_deleted',
     ];
@@ -28,18 +27,6 @@ class Comment4 extends Model
     // Một bình luận được viết bởi một người dùng.
     public function user() // Đổi tên hàm thành user cho tự nhiên, hoặc author cũng được
     {
-        return $this->belongsTo(User::class, 'author_user_id');
-    }
-
-    // Một bình luận có thể là câu trả lời cho một bình luận khác.
-    public function parent()
-    {
-        return $this->belongsTo(Comment4::class, 'parent_comment_id');
-    }
-
-    //Một bình luận có thể có nhiều câu trả lời (con).
-    public function replies()
-    {
-        return $this->hasMany(Comment4::class, 'parent_comment_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

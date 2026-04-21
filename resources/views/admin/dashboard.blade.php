@@ -122,6 +122,9 @@
                             <thead><tr><th>Người dùng</th><th>Vai trò</th><th class="text-end">Followers</th></tr></thead>
                             <tbody>
                                 @foreach($top_users as $user)
+                                @php
+                                    $userRole = strtolower((string) data_get($user, 'role', 'member'));
+                                @endphp
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -129,7 +132,7 @@
                                             <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->display_name }}</span>
                                         </div>
                                     </td>
-                                    <td><span class="badge {{ $user->role == 'admin' ? 'bg-soft-purple' : 'bg-light text-secondary' }} rounded-pill">{{ ucfirst($user->role) }}</span></td>
+                                    <td><span class="badge {{ $userRole == 'admin' ? 'bg-soft-purple' : 'bg-light text-secondary' }} rounded-pill">{{ ucfirst($userRole) }}</span></td>
                                     <td class="text-end fw-bold text-dark">{{ $user->follower_count }}</td>
                                 </tr>
                                 @endforeach

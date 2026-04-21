@@ -17,7 +17,7 @@ class FeedController extends Controller
 
         try {
             $query = Post::query()
-                ->with(['author:id,username,display_name,avatar_url'])
+                ->with(['author:id,username,display_name,avatar_url', 'media:id,type,url,mime'])
                 ->where('is_deleted', false)
                 ->when($since, fn ($q) => $q->where('created_at', '>', $since));
 
@@ -48,16 +48,31 @@ class FeedController extends Controller
                 ->limit($limit)
                 ->get();
 
-            $mediaById = DB::table('media')
-                ->whereIn('id', $posts->pluck('media_id')->filter()->all())
-                ->pluck('url', 'id');
-
             $posts = $posts
-                ->map(function (Post $post) use ($mediaById): array {
+                ->map(function (Post $post): array {
                     $author = $post->author;
                     $content = (string) ($post->content ?? '');
                     preg_match_all('/@([a-zA-Z0-9_\.]+)/', $content, $matches);
                     $mentions = array_values(array_unique($matches[1] ?? []));
+                    $mediaItems = $post->media
+                        ->map(fn ($media) => [
+                            'type' => (string) $media->type,
+                            'url' => (string) $media->url,
+                            'mime' => (string) ($media->mime ?? ''),
+                        ])
+                        ->values()
+                        ->all();
+
+                    if (empty($mediaItems) && $post->media_id) {
+                        $fallback = DB::table('media')->where('id', $post->media_id)->first();
+                        if ($fallback) {
+                            $mediaItems[] = [
+                                'type' => (string) ($fallback->type ?? 'image'),
+                                'url' => (string) ($fallback->url ?? ''),
+                                'mime' => (string) ($fallback->mime ?? ''),
+                            ];
+                        }
+                    }
 
                     return [
                         'id' => $post->id,
@@ -65,7 +80,8 @@ class FeedController extends Controller
                         'like_count' => $post->like_count,
                         'comment_count' => $post->comment_count,
                         'visibility' => $post->visibility,
-                        'media_url' => $post->media_id ? $mediaById->get($post->media_id) : null,
+                        'media_url' => $mediaItems[0]['url'] ?? null,
+                        'media_items' => $mediaItems,
                         'mentions' => $mentions,
                         'created_at' => optional($post->created_at)->toIso8601String(),
                         'created_at_human' => optional($post->created_at)->diffForHumans(),

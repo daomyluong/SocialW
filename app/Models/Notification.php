@@ -10,17 +10,22 @@ class Notification extends Model
 
     protected $fillable = [
         'user_id', 
-        'actor_user_id',
+        'sender_id',
         'type',
         'post_id', 
-        'comment_id',   
+        'comment_id',
+        'message',
         'is_read'
     ];
 
+    public function sender()
+    {
+        return $this->belongsTo(User::class, 'sender_id');
+    }
+
     public function actor()
     {
-        
-        return $this->belongsTo(User::class, 'actor_user_id');
+        return $this->sender();
     }
     
     public function post()

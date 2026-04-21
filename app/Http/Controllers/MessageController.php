@@ -19,11 +19,12 @@ class MessageController extends Controller
     {
         $viewer = $this->resolveViewer();
         $followingUsers = $this->followingUsers($viewer);
+        $suggestedUsers = $this->suggestedUsers($viewer, $followingUsers);
         $groupConversations = $this->groupConversations($viewer);
         $activeConversation = null;
         $recentPrivateConversations = $this->recentPrivateConversations($viewer);
 
-        return $this->renderPage($viewer, $followingUsers, $groupConversations, $activeConversation, $recentPrivateConversations);
+        return $this->renderPage($viewer, $followingUsers, $suggestedUsers, $groupConversations, $activeConversation, $recentPrivateConversations);
     }
 
     public function openPrivate(User $user): RedirectResponse
@@ -43,10 +44,11 @@ class MessageController extends Controller
         $this->ensureParticipant($conversation, $viewer);
 
         $followingUsers = $this->followingUsers($viewer);
+        $suggestedUsers = $this->suggestedUsers($viewer, $followingUsers);
         $groupConversations = $this->groupConversations($viewer);
         $recentPrivateConversations = $this->recentPrivateConversations($viewer);
 
-        return $this->renderPage($viewer, $followingUsers, $groupConversations, $conversation->load(['participants', 'creator']), $recentPrivateConversations);
+        return $this->renderPage($viewer, $followingUsers, $suggestedUsers, $groupConversations, $conversation->load(['participants', 'creator']), $recentPrivateConversations);
     }
 
     public function history(Conversation $conversation): JsonResponse
@@ -150,7 +152,7 @@ class MessageController extends Controller
         return redirect()->route('messages.show', $conversation)->with('message_sent', true);
     }
 
-    private function renderPage(User $viewer, Collection $followingUsers, Collection $groupConversations, ?Conversation $activeConversation, Collection $recentPrivateConversations): View
+    private function renderPage(User $viewer, Collection $followingUsers, Collection $suggestedUsers, Collection $groupConversations, ?Conversation $activeConversation, Collection $recentPrivateConversations): View
     {
         $messages = $activeConversation
             ? $activeConversation->messages()
@@ -170,6 +172,7 @@ class MessageController extends Controller
         return view('messages.index', [
             'viewer' => $viewer,
             'followingUsers' => $followingUsers,
+            'suggestedUsers' => $suggestedUsers,
             'groupConversations' => $groupConversations,
             'recentPrivateConversations' => $recentPrivateConversations,
             'activeConversation' => $activeConversation,
@@ -201,6 +204,19 @@ class MessageController extends Controller
             ->select(['id', 'username', 'display_name', 'name', 'avatar_url'])
             ->whereIn('id', $followingIds)
             ->orderByRaw('COALESCE(display_name, name) asc')
+            ->get();
+    }
+
+    private function suggestedUsers(User $viewer, Collection $followingUsers): Collection
+    {
+        $followingIds = $followingUsers->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        return User::query()
+            ->select(['id', 'username', 'display_name', 'name', 'avatar_url'])
+            ->where('id', '!=', $viewer->id)
+            ->whereNotIn('id', $followingIds)
+            ->orderByRaw('COALESCE(display_name, name) asc')
+            ->limit(5)
             ->get();
     }
 

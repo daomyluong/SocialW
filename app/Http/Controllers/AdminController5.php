@@ -2,17 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AdminController5 extends Controller
 {
+    private function currentAdminId(): ?int
+    {
+        return Auth::id() ? (int) Auth::id() : null;
+    }
+
     // ===================================================
     // 1. TRANG BẢNG ĐIỀU KHIỂN (DASHBOARD)
     // ===================================================
     public function dashboard()
     {
+        $this->authorize('manageAdmin', User::class);
+
         // Thống kê 4 thẻ Tổng quan
         $admin_total_users = DB::table('users')->count();
         $admin_total_posts = DB::table('posts')->count();
@@ -31,7 +42,9 @@ class AdminController5 extends Controller
         $chart_data = $posts_by_day->pluck('total');
 
         // Nhật ký hoạt động
-        $admin_recent_actions = DB::table('admin_actions')->orderBy('created_at', 'desc')->limit(5)->get();
+        $admin_recent_actions = Schema::hasTable('admin_actions')
+            ? DB::table('admin_actions')->orderBy('created_at', 'desc')->limit(5)->get()
+            : collect();
 
         // Top 5
         $top_users = DB::table('users')->orderBy('follower_count', 'desc')->limit(5)->get();
@@ -49,8 +62,13 @@ class AdminController5 extends Controller
     // ===================================================
     public function manageUsers(Request $request)
     {
-        // Khởi tạo câu truy vấn (Chỉ lấy những user chưa bị xóa mềm)
-        $query = DB::table('users')->where('is_deleted', 0);
+        $this->authorize('manageAdmin', User::class);
+
+        // Khởi tạo câu truy vấn (chỉ lọc is_deleted nếu cột này tồn tại)
+        $query = DB::table('users');
+        if (Schema::hasColumn('users', 'is_deleted')) {
+            $query->where('is_deleted', 0);
+        }
 
         // 1. Xử lý TÌM KIẾM (Theo tên hoặc email)
         if ($request->has('search') && $request->search != '') {
@@ -62,7 +80,7 @@ class AdminController5 extends Controller
         }
 
         // 2. Xử lý LỌC THEO VAI TRÒ
-        if ($request->has('role') && $request->role != '') {
+        if ($request->has('role') && $request->role != '' && Schema::hasColumn('users', 'role')) {
             $query->where('role', $request->role);
         }
 
@@ -82,6 +100,8 @@ class AdminController5 extends Controller
     // ===================================================
     public function toggleUserStatus($id)
     {
+        $this->authorize('manageAdmin', User::class);
+
         $user = DB::table('users')->where('id', $id)->first();
         if($user) {
             // Đảo ngược trạng thái: Đang 1 thành 0, đang 0 thành 1
@@ -91,10 +111,11 @@ class AdminController5 extends Controller
             // Ghi log
             $actionName = $newStatus == 0 ? 'Khóa' : 'Mở khóa';
             DB::table('admin_actions')->insert([
-                'admin_user_id' => 1, // Giả sử Admin ID 1 đang thao tác
+                'admin_user_id' => $this->currentAdminId(),
                 'action_type' => 'Update Status',
                 'note' => $actionName . ' tài khoản: ' . $user->display_name,
-                'created_at' => now()
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             
             return redirect()->back()->with('status', 'Đã ' . $actionName . ' tài khoản thành công!');
@@ -107,14 +128,21 @@ class AdminController5 extends Controller
     // ===================================================
     public function deleteUser($id)
     {
-        // Xóa mềm: Chuyển is_deleted = 1 thay vì xóa vĩnh viễn
-        DB::table('users')->where('id', $id)->update(['is_deleted' => 1]);
+        $this->authorize('manageAdmin', User::class);
+
+        // Xóa mềm: ưu tiên dùng is_deleted nếu có, fallback sang khóa tài khoản.
+        if (Schema::hasColumn('users', 'is_deleted')) {
+            DB::table('users')->where('id', $id)->update(['is_deleted' => 1]);
+        } else {
+            DB::table('users')->where('id', $id)->update(['is_active' => 0]);
+        }
 
         DB::table('admin_actions')->insert([
-            'admin_user_id' => 1,
+            'admin_user_id' => $this->currentAdminId(),
             'action_type' => 'Delete User',
             'note' => 'Đã xóa tài khoản ID: ' . $id,
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('status', 'Đã xóa tài khoản ra khỏi hệ thống!');
@@ -125,6 +153,8 @@ class AdminController5 extends Controller
 
     public function managePosts(Request $request)
     {
+        $this->authorize('manageAdmin', User::class);
+
         // Join với bảng users để lấy tên tác giả
         $query = DB::table('posts')
             ->join('users', 'posts.author_user_id', '=', 'users.id')
@@ -160,14 +190,17 @@ class AdminController5 extends Controller
 
     public function deletePost($id)
     {
+        $this->authorize('moderate', Post::class);
+
         DB::table('posts')->where('id', $id)->update(['is_deleted' => 1]);
 
         // Ghi lại nhật ký
         DB::table('admin_actions')->insert([
-            'admin_user_id' => 1,
+            'admin_user_id' => $this->currentAdminId(),
             'action_type' => 'Delete Post',
             'note' => 'Đã xóa bài viết ID: #' . $id,
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('status', 'Đã xóa bài viết thành công!');
@@ -179,13 +212,17 @@ class AdminController5 extends Controller
     // ===================================================
     public function manageComments(Request $request)
     {
+        $this->authorize('manageAdmin', User::class);
+
         // Nối 3 bảng: Bình luận + Người dùng + Bài viết
         $query = DB::table('comments')
-            ->join('users', 'comments.author_user_id', '=', 'users.id')
+            ->join('users', 'comments.user_id', '=', 'users.id')
             ->join('posts', 'comments.post_id', '=', 'posts.id')
             ->select(
                 'comments.*', 
+                'comments.user_id as author_user_id',
                 'users.display_name as author_name', 
+                'users.is_active as user_status',
                 'posts.content as post_content'
             );
 
@@ -207,13 +244,16 @@ class AdminController5 extends Controller
     // Khóa nhanh người dùng khi thấy comment vi phạm
     public function quickBanUser($userId)
     {
+        $this->authorize('manageAdmin', User::class);
+
         DB::table('users')->where('id', $userId)->update(['is_active' => 0]);
         
         DB::table('admin_actions')->insert([
-            'admin_user_id' => 1,
+            'admin_user_id' => $this->currentAdminId(),
             'action_type' => 'Quick Ban',
             'note' => 'Khóa nhanh User ID #' . $userId . ' từ quản lý bình luận',
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('status', 'Đã khóa tài khoản người dùng vi phạm!');
@@ -221,15 +261,18 @@ class AdminController5 extends Controller
 
     public function deleteComment($id)
     {
+        $this->authorize('manageAdmin', User::class);
+
         // Xóa cứng bình luận bay khỏi database luôn (vì đây thường là rác/spam)
         DB::table('comments')->where('id', $id)->delete();
 
         // Ghi nhật ký
         DB::table('admin_actions')->insert([
-            'admin_user_id' => 1,
+            'admin_user_id' => $this->currentAdminId(),
             'action_type' => 'Delete Comment',
             'note' => 'Đã xóa 1 bình luận vi phạm (ID: #' . $id . ')',
-            'created_at' => now()
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('status', 'Đã dọn dẹp bình luận thành công!');
@@ -241,6 +284,8 @@ class AdminController5 extends Controller
     // ===================================================
     public function manageReports(Request $request)
     {
+        $this->authorize('manageAdmin', User::class);
+
         // 1. Khởi tạo truy vấn: Gộp nhóm theo Đối tượng bị report và Lý do
         $query = DB::table('reports')
             ->select(
@@ -293,11 +338,11 @@ class AdminController5 extends Controller
                 $report->thumbnail = $post->image_url ?? null;
                 $report->is_video = isset($post->video_url) && $post->video_url != null;
                 $report->author_id = $post ? $post->author_user_id : null;
-                $report->deep_link = url('/post/' . $report->reported_entity_id); // Nhảy cóc đến bài viết
+                $report->deep_link = url('/posts/' . $report->reported_entity_id); // Nhảy cóc đến bài viết
             } elseif ($report->reported_entity_type == 'user') {
                 $user = DB::table('users')->where('id', $report->reported_entity_id)->first();
-                $report->display_name = $user->display_name ?? 'N/A';
-                $report->full_content = 'Trang cá nhân của: ' . ($user->display_name ?? 'N/A');
+                $report->display_name = $user?->display_name ?? 'N/A';
+                $report->full_content = 'Trang cá nhân của: ' . ($user?->display_name ?? 'N/A');
                 $report->thumbnail = "https://ui-avatars.com/api/?name=" . urlencode($report->display_name) . "&background=4facfe&color=fff";
                 $report->author_id = $report->reported_entity_id;
                 $report->deep_link = url('/profile/' . $report->reported_entity_id); // Nhảy cóc đến user
@@ -306,8 +351,8 @@ class AdminController5 extends Controller
                 $report->display_name = $comment ? Str::limit($comment->content, 40) : 'Bình luận đã xóa';
                 $report->full_content = $comment ? $comment->content : 'Nội dung không còn tồn tại.';
                 $report->thumbnail = null;
-                $report->author_id = $comment ? $comment->author_user_id : null;
-                $report->deep_link = url('/post/' . ($comment->post_id ?? 0) . '#comment-' . $report->reported_entity_id); // Nhảy cóc đến comment
+                $report->author_id = $comment ? $comment->user_id : null;
+                $report->deep_link = url('/posts/' . ($comment->post_id ?? 0) . '#comment-' . $report->reported_entity_id); // Nhảy cóc đến comment
             }
 
             // Lấy danh sách những người đã report cái ID này với lý do này
@@ -358,11 +403,19 @@ class AdminController5 extends Controller
         // Perform action based on type
         if ($action == 'hide') {
             if ($entityType == 'post') {
-                DB::table('posts')->where('id', $entityId)->update([
+                $payload = [
                     'content' => 'Nội dung này đã bị ẩn vì vi phạm quy định cộng đồng.',
-                    'image_url' => null,
-                    'video_url' => null
-                ]);
+                ];
+
+                if (Schema::hasColumn('posts', 'image_url')) {
+                    $payload['image_url'] = null;
+                }
+
+                if (Schema::hasColumn('posts', 'video_url')) {
+                    $payload['video_url'] = null;
+                }
+
+                DB::table('posts')->where('id', $entityId)->update($payload);
             } elseif ($entityType == 'comment') {
                 DB::table('comments')->where('id', $entityId)->update([
                     'content' => 'Bình luận này đã bị ẩn vì vi phạm quy định cộng đồng.'

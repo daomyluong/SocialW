@@ -42,7 +42,7 @@
                 <button type="submit" class="btn btn-primary w-100 fw-bold" style="border-radius: 0.5rem;">Lọc dữ liệu</button>
             </div>
             <div class="col-md-2 text-end">
-                <a href="#" class="btn btn-success fw-bold w-100" style="border-radius: 0.5rem;"><i class="fa-solid fa-plus me-2"></i>Thêm User</a>
+                <a href="{{ route('register') }}" class="btn btn-success fw-bold w-100" style="border-radius: 0.5rem;"><i class="fa-solid fa-plus me-2"></i>Thêm User</a>
             </div>
         </form>
     </div>
@@ -90,9 +90,9 @@
                             </td>
                             <td class="text-muted">{{ \Carbon\Carbon::parse($user->created_at)->format('d/m/Y') }}</td>
                             <td class="text-end">
-                                <a href="#" class="action-btn bg-light text-primary me-1" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></a>
+                                <a href="{{ route('profile.show', $user->id) }}" class="action-btn bg-light text-primary me-1" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></a>
                                 
-                                <a href="#" class="action-btn bg-light text-warning me-1" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></a>
+                                <a href="{{ route('profile.show', $user->id) }}" class="action-btn bg-light text-warning me-1" title="Đi đến trang cá nhân"><i class="fa-solid fa-pen"></i></a>
 
                                 <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline">
                                     @csrf

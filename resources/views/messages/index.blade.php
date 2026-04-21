@@ -381,7 +381,7 @@
         <aside class="conversation-sidebar">
             <div class="panel-header">
                 <div class="fw-bold">Tin nhắn</div>
-                <small class="text-muted">Người nhắn tin gần đây và bắt đầu cuộc trò chuyện mới</small>
+                <small class="text-muted">Nhắn tin riêng: người nhắn tin gần đây và bắt đầu cuộc trò chuyện mới</small>
             </div>
 
             <div class="sidebar-body">
@@ -562,8 +562,39 @@
 
 @section('suggestions')
 <div class="suggestion-card">
-    <div class="fw-bold mb-2">Mẹo test nhanh</div>
-    <div class="text-muted small mb-3">Mở nhắn tin từ sidebar trái, chọn một người ở danh sách gần đây, nhập nội dung rồi nhấn Enter để gửi.</div>
+    <div class="fw-bold mb-2">Gợi ý theo dõi</div>
+    @if($suggestedUsers->isNotEmpty())
+        <div class="d-flex flex-column gap-2">
+            @foreach($suggestedUsers as $user)
+                <div class="d-flex align-items-center justify-content-between gap-2 p-2 border rounded-3 bg-white">
+                    <a href="{{ route('profile.show', $user) }}" class="text-decoration-none text-dark d-flex align-items-center gap-2 min-w-0">
+                        <div class="conversation-avatar" style="width: 34px; height: 34px;">
+                            @if($user->avatar_url)
+                                <img src="{{ $user->avatar_url }}" alt="avatar">
+                            @else
+                                <i class="fa-solid fa-user"></i>
+                            @endif
+                        </div>
+                        <div class="min-w-0">
+                            <div class="conversation-name text-truncate" style="font-size: 0.85rem;">{{ $user->display_name ?? $user->name ?? 'Người dùng' }}</div>
+                            <div class="conversation-meta text-truncate">@{{ $user->username }}</div>
+                        </div>
+                    </a>
+                    <form action="{{ route('users.follow', $user) }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-follow rounded-pill">Theo dõi</button>
+                    </form>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div class="text-muted small mb-3">Hiện chưa có gợi ý mới.</div>
+    @endif
+</div>
+
+<div class="suggestion-card mt-3">
+    <div class="fw-bold mb-2">Mẹo nhắn tin</div>
+    <div class="text-muted small mb-3">Chọn một người ở danh sách bên trái, nhập nội dung rồi nhấn Enter để gửi nhanh.</div>
     <span class="suggestion-chip"><i class="fa-regular fa-comments"></i> Chat gần nhất</span>
     <span class="suggestion-chip"><i class="fa-regular fa-image"></i> Gửi ảnh</span>
     <span class="suggestion-chip"><i class="fa-solid fa-paperclip"></i> Gửi file</span>

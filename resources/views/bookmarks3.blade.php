@@ -94,7 +94,7 @@
 <a href="{{ route('home') }}#post-{{ $bm->post_id }}" class="text-primary text-decoration-none small fw-bold">
     Xem bài viết gốc <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.7rem;"></i>
 </a>
-                            <button onclick="handleRemoveBookmark({{ $bm->post_id }}, this)" class="btn btn-link text-danger text-decoration-none p-0 small fw-bold">
+                            <button data-post-id="{{ $bm->post_id }}" onclick="handleRemoveBookmark(this.dataset.postId, this)" class="btn btn-link text-danger text-decoration-none p-0 small fw-bold">
                                 <i class="fa-solid fa-trash-can me-1"></i> Bỏ lưu
                             </button>
                         </div>

@@ -7,19 +7,19 @@
     <div class="list-group shadow-sm border-0">
         @forelse($notifications as $noti)
             {{-- CHỈNH SỬA: Chuyển div thành thẻ a và thêm href dẫn đến bài viết --}}
-            <a href="{{ $noti->post_id ? url('/posts/' . $noti->post_id) : '#' }}" 
+                <a href="{{ $noti->post_id ? route('posts3.show', $noti->post_id) : route('notifications.index') }}" 
                class="list-group-item list-group-item-action border-0 border-bottom py-3 {{ $noti->is_read == 0 ? 'bg-light' : '' }}" 
                style="border-radius: 10px; text-decoration: none; color: inherit;">
                 
                 <div class="d-flex align-items-center">
                     {{-- Avatar: Lấy theo actor_user_id --}}
                     <div class="avatar me-3">
-                        <img src="https://ui-avatars.com/api/?name=User{{ $noti->actor_user_id }}&background=random" class="rounded-circle" width="45">
+                        <img src="https://ui-avatars.com/api/?name=User{{ $noti->sender_id }}&background=random" class="rounded-circle" width="45">
                     </div>
                     
                     <div class="flex-grow-1">
                         <p class="mb-0 text-dark">
-                            <span class="fw-bold">User #{{ $noti->actor_user_id }}</span> 
+                            <span class="fw-bold">User #{{ $noti->sender_id }}</span> 
                             @if($noti->type == 'like')
                                 đã thích bài viết của bạn.
                             @elseif($noti->type == 'comment')

@@ -1,806 +1,329 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container" style="max-width: 600px;">
+<style>
+    .feed-shell {
+        max-width: 720px;
+    }
+    .feed-hero {
+        background: linear-gradient(135deg, #e8f1ff 0%, #f8fbff 62%, #fff6ea 100%);
+        border: 1px solid #e6eef9;
+        border-radius: 20px;
+        padding: 18px;
+    }
+    .post-card {
+        border: 1px solid #e8edf5;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(20, 40, 70, 0.05);
+    }
+    .post-toolbar button {
+        border: 0;
+        background: transparent;
+        color: #4f5b6b;
+        font-weight: 600;
+    }
+    .post-toolbar button:hover {
+        color: #0d6efd;
+    }
+    .story-badge {
+        min-width: 86px;
+    }
+    .bookmark-btn .fa-bookmark {
+        font-size: 1.05rem;
+    }
+</style>
 
-    @guest
-        <div class="alert alert-light border shadow-sm mb-4 d-flex justify-content-between align-items-center">
-            <span>Chào mừng bạn đến với W-Social!</span>
-            <div>
-                <a href="{{ route('login') }}" class="btn btn-sm btn-outline-primary me-2">Đăng nhập</a>
-                @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="btn btn-sm btn-primary">Đăng ký</a>
-                @endif
-            </div>
-        </div>
-    @endguest
-
-    <div class="card mb-4 border-0 border-bottom shadow-sm">
-        <div class="card-body d-flex">
-            <div class="avatar me-3" style="width: 50px; height: 50px; flex-shrink: 0;">
-                @auth
-                    <a href="{{ route('profile.show', Auth::id()) }}">
-                        <img src="{{ asset(Auth::user()->avatar_url ?? 'uploads/avatars/default.png') }}" 
-                             class="rounded-circle" width="50" height="50" style="object-fit: cover;">
-                    </a>
-                @else
-                    <div class="bg-light rounded-circle w-100 h-100 d-flex align-items-center justify-content-center">
-                        <i class="fa-solid fa-user fa-xl text-secondary"></i>
-                    </div>
-                @endauth
-            </div>
-            <div class="w-100">
-
-                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ auth()->user()?->display_name ?? 'Đào' }}?" disabled>
-
-                <input type="text" class="form-control border-0 bg-light" style="border-radius: 20px;" 
-                       placeholder="Bạn đang nghĩ gì, {{ Auth::check() ? Auth::user()->display_name : 'Đào' }}?">
-
-                <div class="mt-2 d-flex gap-3 text-primary">
-                    <small role="button"><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
-                    <small role="button"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
-
-    {{-- ======================================================= --}}
-    {{-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG                           --}}
-    {{-- ======================================================= --}}
+<div class="container feed-shell">
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" style="border-radius: 15px;" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    {{-- ======================================================= --}}
-    {{-- PHẦN STORY (THANH TRƯỢT NGANG)                          --}}
-    {{-- ======================================================= --}}
-    <div class="d-flex overflow-auto py-3 mb-4" style="gap: 15px; scrollbar-width: none; -ms-overflow-style: none;">
-        <style>.d-flex::-webkit-scrollbar { display: none; }</style>
-        
-        <div class="text-center" style="min-width: 75px;">
-            <form action="{{ route('stories3.store') }}" method="POST" enctype="multipart/form-data" id="storyForm3">
-                @csrf
-                <label for="storyInput3" style="cursor: pointer;">
-                    <div class="rounded-circle border border-2 border-primary d-flex align-items-center justify-content-center mb-1" style="width: 65px; height: 65px; border-style: dashed !important;">
-                        <i class="fa-solid fa-plus text-primary fa-lg"></i>
-                    </div>
-                </label>
-                <input type="file" name="media" id="storyInput3" hidden onchange="document.getElementById('storyForm3').submit()">
-            </form>
-            <small class="fw-bold" style="font-size: 0.75rem;">Tin của bạn</small>
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
+    @endif
 
-        @if(isset($stories))
-            @foreach($stories as $userId => $userStories)
-            <div class="text-center" style="min-width: 75px; cursor: pointer;" onclick="openStoryModal3({{ json_encode($userStories) }})">
-                <div class="rounded-circle p-1 mb-1" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); width: 65px; height: 65px;">
-                    <img src="https://ui-avatars.com/api/?name=User{{ $userId }}&background=random" class="rounded-circle border border-2 border-white w-100 h-100" style="object-fit: cover;">
-                </div>
-                <small class="d-block text-truncate fw-bold" style="font-size: 0.75rem;">User #{{ $userId }}</small>
-            </div>
-            @endforeach
-        @endif
-    </div>
-
-    {{-- ======================================================= --}}
-    {{-- PHẦN 1: KHUNG ĐĂNG BÀI NHANH                            --}}
-    {{-- ======================================================= --}}
-    <div class="card mb-4 border-0 border-bottom">
-        <div class="card-body">
-            <form action="{{ route('posts3.store') }}" method="POST" enctype="multipart/form-data">
+    @auth
+        <div class="feed-hero mb-4">
+            <form action="{{ route('posts3.store') }}" method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-3">
                 @csrf
-                <div class="d-flex">
-                    <div class="avatar bg-light rounded-circle me-3" style="width: 50px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-user fa-xl text-secondary"></i>
-                    </div>
-                    <div class="w-100">
-                        <input type="text" name="content" class="form-control border-0 bg-light" style="border-radius: 20px;" placeholder="Bạn đang nghĩ gì, {{ Auth::user()->display_name ?? 'Thanh' }}?" required>
-                        <input type="hidden" name="visibility" value="public">
-                        <div id="homeImagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
-                        <div class="mt-3 d-flex justify-content-between align-items-center">
-                            <div class="d-flex gap-3 text-primary">
-                                <label for="homePostImage" class="mb-0" style="cursor: pointer;">
-                                    <small><i class="fa-regular fa-image me-1"></i> Ảnh/Video</small>
-                                </label>
-                                <input type="file" name="image[]" id="homePostImage" class="d-none" accept="image/*" multiple>
-                                <small style="cursor: pointer;"><i class="fa-solid fa-at me-1"></i> Nhắc tên</small>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Đăng</button>
+                <input type="text" name="content" class="form-control border-0" style="border-radius: 14px; background: #fff;" placeholder="Bạn đang nghĩ gì, {{ auth()->user()?->display_name ?? 'bạn' }}?">
+                <input type="hidden" name="visibility" value="public">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <label for="homePostImage" class="btn btn-outline-primary btn-sm rounded-pill mb-0"><i class="fa-regular fa-image me-1"></i> Ảnh</label>
+                    <input type="file" id="homePostImage" name="image[]" class="d-none" accept="image/*" multiple>
+                    <label for="homePostVideo" class="btn btn-outline-danger btn-sm rounded-pill mb-0"><i class="fa-solid fa-video me-1"></i> Video</label>
+                    <input type="file" id="homePostVideo" name="video[]" class="d-none" accept="video/*" multiple>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Đăng bài</button>
+                </div>
+            </form>
+            <hr>
+            <form action="{{ route('stories3.store') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
+                @csrf
+                <input type="file" name="media" class="form-control form-control-sm" accept="image/*,video/*" required>
+                <button type="submit" class="btn btn-warning btn-sm rounded-pill">Đăng story</button>
+            </form>
+        </div>
+    @endauth
+
+    @if(isset($stories) && $stories->isNotEmpty())
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex gap-3 overflow-auto">
+                @foreach($stories as $userId => $userStories)
+                    @php
+                        $storyOwner = $userStories->first()?->user;
+                    @endphp
+                    <div class="text-center story-badge">
+                        <div class="rounded-circle p-1 mx-auto mb-1" style="width: 58px; height: 58px; background: linear-gradient(45deg, #f59e0b, #ef4444, #db2777);">
+                            <img src="{{ $storyOwner?->avatar_url ? asset($storyOwner->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($storyOwner?->display_name ?? ('User '.$userId)).'&background=random' }}" class="rounded-circle border border-2 border-white w-100 h-100" style="object-fit: cover;" alt="story">
                         </div>
+                        <small class="text-muted d-block text-truncate">{{ $storyOwner?->display_name ?? $storyOwner?->username ?? ('User #'.$userId) }}</small>
                     </div>
-
-                </div>
-            </form>
+                @endforeach
+            </div>
         </div>
-    </div>
-
+    @endif
 
     <h5 class="fw-bold mb-3">Bảng tin</h5>
-    <div id="feedStatus" class="small text-muted mb-2">Đang tải bảng tin...</div>
-    <div id="feedList"></div>
-</div>
 
-    <h5 class="fw-bold mb-4">Dành cho bạn</h5>
-
-
-    <div class="post-item mb-4 border-bottom pb-3">
-        <div class="d-flex align-items-center mb-2">
-            <a href="{{ route('profile.show', 2) }}">
-                <img src="https://ui-avatars.com/api/?name=Tuan+MIS&background=0D8ABC&color=fff" class="rounded-circle me-2" width="40" height="40">
-            </a>
-            <div>
-                <span class="fw-bold">tuan_mis</span>
-                <small class="text-muted d-block">2 giờ trước</small>
-            </div>
-        </div>
-        <div class="post-content ps-5">
-            <p>Hệ thống W-Social bắt đầu chạy thử nghiệm Layout hôm nay! Mọi người thấy giao diện mới thế nào? 🚀</p>
-            <div class="rounded-4 overflow-hidden border mb-3">
-                <img src="https://via.placeholder.com/600x400" class="img-fluid w-100" alt="post image">
-
-    {{-- ======================================================= --}}
-    {{-- PHẦN 2: DANH SÁCH BÀI VIẾT                              --}}
-    {{-- ======================================================= --}}
     @forelse($posts as $post)
-
-        {{-- THÊM ID ĐỂ TRANG BOOKMARKS CÓ THỂ TRỎ ĐẾN ĐÚNG BÀI VIẾT NÀY --}}
-        <div class="post-item mb-4 border-bottom pb-3" id="post-{{ $post->id }}">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-
-        <div class="post-item mb-4 border-bottom pb-3" id="post-{{ $post->id }}">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-
-                <div class="d-flex align-items-center">
-                    <img src="https://ui-avatars.com/api/?name=User&background=random" class="rounded-circle me-2" width="40" height="40">
-                    <div>
-                        <span class="fw-bold">User #{{ $post->author_user_id }}</span>
-                        <small class="text-muted d-block">{{ $post->created_at->diffForHumans() }}</small>
-                    </div>
-                </div>
-                @if(Auth::id() == $post->author_user_id)
-                <div class="dropdown">
-                    <button class="btn btn-link text-secondary p-0" data-bs-toggle="dropdown" style="text-decoration: none;">
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
-                        <li><a class="dropdown-item" href="{{ route('posts3.edit', $post->id) }}"><i class="fa-solid fa-pen me-2"></i>Chỉnh sửa</a></li>
-                        <li>
-                            <form action="{{ route('posts3.destroy', $post->id) }}" method="POST">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Bạn có chắc muốn xóa?')"><i class="fa-solid fa-trash me-2"></i>Xóa bài</button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
-                @endif
-
-            </div>
-
-            <div class="post-content ps-5">
-                <p>{{ $post->content }}</p>
-                @if($post->media && $post->media->count() > 0)
-                    <div class="rounded-4 overflow-hidden border mb-3">
-                        <div class="row g-1">
-                            @foreach($post->media as $m)
-                                <div class="{{ $post->media->count() == 1 ? 'col-12' : 'col-6' }}">
-                                    <img src="{{ asset($m->url) }}" class="img-fluid w-100" style="height: 250px; object-fit: cover;">
-                                </div>
-                            @endforeach
+        @php
+            $isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
+            $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
+            $formattedContent = preg_replace('/@([a-zA-Z0-9_\.]+)/', '<span class="text-primary fw-semibold">@$1</span>', e($post->content ?? ''));
+        @endphp
+        <div class="card post-card mb-3" id="post-{{ $post->id }}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="{{ $post->author?->avatar_url ? asset($post->author->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($post->author?->display_name ?? $post->author?->username ?? ('User '.$post->author_user_id)).'&background=random' }}" class="rounded-circle" width="42" height="42" alt="avatar">
+                        <div>
+                            <div class="fw-bold">{{ $post->author?->display_name ?? $post->author?->username ?? ('User #'.$post->author_user_id) }}</div>
+                            <small class="text-muted">{{ optional($post->created_at)->diffForHumans() }}</small>
                         </div>
                     </div>
+                    @auth
+                        <button type="button" class="btn btn-sm bookmark-btn" data-post-id="{{ $post->id }}" title="Lưu bài viết">
+                            <i class="fa-{{ $isBookmarked ? 'solid' : 'regular' }} fa-bookmark {{ $isBookmarked ? 'text-primary' : 'text-secondary' }}"></i>
+                        </button>
+                    @endauth
+                </div>
+
+                <p class="mb-2">{!! $formattedContent !!}</p>
+
+                @if($post->media->count() > 0)
+                    <div class="d-grid gap-2 mb-3">
+                        @foreach($post->media as $mediaItem)
+                            @if(($mediaItem->type ?? '') === 'video')
+                                <div class="rounded-3 overflow-hidden border">
+                                    <video controls class="w-100" style="max-height: 460px; background: #000;">
+                                        <source src="{{ asset($mediaItem->url) }}" type="{{ $mediaItem->mime ?? 'video/mp4' }}">
+                                    </video>
+                                </div>
+                            @else
+                                <div class="rounded-3 overflow-hidden border">
+                                    <img src="{{ asset($mediaItem->url) }}" class="img-fluid w-100" alt="media">
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 @endif
 
-                <div class="post-actions d-flex justify-content-between text-secondary">
-                    <div class="d-flex gap-4">
-                        <span><i class="fa-regular fa-heart me-1"></i> Thích</span>
-                        <span><i class="fa-regular fa-comment me-1"></i> Bình luận</span>
-                        <span><i class="fa-solid fa-share me-1"></i></span>
-                    </div>
-                    
-                    {{-- NÚT BOOKMARK: ĐÃ FIX ĐỂ TỰ ĐỘNG CẬP NHẬT KHI BỎ LƯU --}}
-                    <div onclick="toggleBookmark3({{ $post->id }}, this)" style="cursor: pointer;" title="Lưu bài viết">
-                        @php
-                            $isBookmarked = \App\Models\Bookmark3::where('user_id', Auth::id() ?? 1)
-                                            ->where('post_id', $post->id)
-                                            ->where('is_deleted', 0) 
-                                            ->exists();
-                        @endphp
-                        <i class="{{ $isBookmarked ? 'fa-solid text-dark' : 'fa-regular' }} fa-bookmark" style="font-size: 1.1rem;"></i>
-                    </div>
-
-                <div class="post-actions d-flex align-items-center gap-4 text-secondary">
-                    {{-- Nút Like --}}
-                    <form action="{{ route('posts.like', $post->id) }}" method="POST" class="d-inline-flex m-0 align-items-center">
+                <div class="post-toolbar d-flex flex-wrap gap-3 align-items-center mb-2">
+                    <form action="{{ route('posts.like', $post->id) }}" method="POST" class="m-0">
                         @csrf
-                        <button type="submit" class="btn btn-link text-decoration-none p-0 d-flex align-items-center {{ $post->is_liked_by_me ? 'text-danger' : 'text-secondary' }}">
-                            <i class="fa-{{ $post->is_liked_by_me ? 'solid' : 'regular' }} fa-heart me-1"></i> 
-                            <span>{{ $post->like_count ?? 0 }} Thích</span>
+                        <button type="submit">
+                            <i class="fa-{{ $isLiked ? 'solid text-danger' : 'regular' }} fa-heart me-1"></i>{{ $post->like_count ?? 0 }}
                         </button>
                     </form>
-
-                    {{-- NÚT BÌNH LUẬN --}}
-                    <button class="btn btn-link text-decoration-none text-secondary p-0 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#commentForm{{ $post->id }}">
-                        <i class="fa-regular fa-comment me-1"></i> 
-                        <span>{{ $post->comment_count ?? 0 }} Bình luận</span>
+                    <button class="btn p-0" type="button" data-bs-toggle="collapse" data-bs-target="#commentArea{{ $post->id }}">
+                        <i class="fa-regular fa-comment me-1"></i>{{ $post->comment_count ?? 0 }}
                     </button>
-
-                    {{-- NÚT CHIA SẺ --}}
-                    <button class="btn btn-link text-decoration-none text-secondary p-0 d-flex align-items-center shadow-none" 
-                            data-bs-toggle="modal" data-bs-target="#shareModal{{ $post->id }}">
-                        <i class="fa-regular fa-share-from-square me-1"></i> 
-                        <span id="share-count-{{ $post->id }}">{{ $post->share_count ?? 0 }}</span>&nbsp;Chia sẻ
+                    <button class="btn p-0" type="button" data-bs-toggle="collapse" data-bs-target="#shareArea{{ $post->id }}">
+                        <i class="fa-regular fa-share-from-square me-1"></i>{{ $post->share_count ?? 0 }}
                     </button>
                 </div>
-                 
-                {{-- MODAL CHIA SẺ --}}
-                <div class="modal fade" id="shareModal{{ $post->id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title fw-bold">Chia sẻ bài viết</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <form action="{{ route('posts.share', $post->id) }}" method="POST">
-                                @csrf
-                                <div class="modal-body">
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold">Lời nhắn của bạn:</label>
-                                        <textarea name="comment" class="form-control form-control-sm" rows="3" placeholder="Viết lời nhắn..."></textarea>
-                                    </div>
-                                    
-                                    <p class="small text-muted mb-2">Gợi ý người dùng:</p>
-                                    <div class="user-suggestions d-flex flex-wrap gap-2">
-                                        @foreach($allUsers as $user)
-                                            <span class="badge rounded-pill bg-light text-dark border p-2" style="cursor:pointer;" onclick="addMention('{{ $user->username }}', {{ $post->id }})">
-                                                @ {{ $user->username }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                </div>
-                                <div class="modal-footer border-0">
-                                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Chia sẻ ngay</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
 
-                {{-- KHU VỰC HIỂN THỊ VÀ NHẬP BÌNH LUẬN --}}
-                <div class="collapse mt-3" id="commentForm{{ $post->id }}">
-                    {{-- Gọi Component danh sách bình luận --}}
+                <div class="collapse" id="commentArea{{ $post->id }}">
                     <x-comment :post="$post" />
+                    @auth
+                        <form action="{{ route('comments.store', $post->id) }}" method="POST" class="mt-2">
+                            @csrf
+                            <div class="input-group input-group-sm">
+                                <input type="text" name="content" class="form-control rounded-pill" placeholder="Viết bình luận..." required>
+                                <button class="btn btn-primary rounded-pill ms-2" type="submit">Gửi</button>
+                            </div>
+                        </form>
+                    @endauth
+                </div>
 
-                    {{-- Form nhập bình luận mới --}}
-                    <form action="{{ route('comments.store', $post->id) }}" method="POST" class="mt-3">
-                        @csrf
-                        <div class="input-group">
-                            <input type="text" name="content" class="form-control form-control-sm rounded-pill" placeholder="Viết bình luận..." required>
-                            <button class="btn btn-primary btn-sm rounded-pill ms-2" type="submit">Gửi</button>
-                        </div>
-                    </form>
+                <div class="collapse" id="shareArea{{ $post->id }}">
+                    @auth
+                        <form action="{{ route('posts.share', $post->id) }}" method="POST" class="mt-2 d-flex gap-2">
+                            @csrf
+                            <input type="text" name="comment" class="form-control form-control-sm" placeholder="Lời nhắn khi chia sẻ (tuỳ chọn)">
+                            <button type="submit" class="btn btn-success btn-sm">Chia sẻ</button>
+                        </form>
+                    @endauth
                 </div>
             </div>
         </div>
     @empty
-        <p class="text-center text-muted py-5">Chưa có bài viết nào được đăng.</p>
+        <div class="alert alert-light border">Chưa có bài viết nào trên bảng tin.</div>
     @endforelse
 </div>
-
-{{-- ======================================================= --}}
-{{-- MODAL XEM STORY                                         --}}
-{{-- ======================================================= --}}
-<div class="modal fade" id="storyModal3" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content bg-dark border-0">
-            <div class="modal-body p-0 position-relative text-center">
-                <div class="progress position-absolute top-0 start-0 w-100" style="height: 4px; z-index: 1010; border-radius: 0;">
-                    <div id="storyProgressBar3" class="progress-bar bg-white" style="width: 0%"></div>
-                </div>
-
-                <div class="position-absolute top-0 start-0 w-100 d-flex align-items-center p-3 mt-2" style="z-index: 1008;">
-                    <img id="storyUserAvatar3" src="" class="rounded-circle border border-1 border-white me-2" width="40" height="40" style="object-fit: cover;">
-                    <div class="text-start text-white">
-                        <div id="storyUserName3" class="fw-bold shadow-sm" style="font-size: 0.9rem; text-shadow: 1px 1px 2px black;"></div>
-                        <small id="storyTime3" class="text-white-50 shadow-sm" style="font-size: 0.75rem; text-shadow: 1px 1px 2px black;"></small>
-                    </div>
-                </div>
-
-                <div onclick="prevStory3(event)" class="position-absolute start-0 top-0 h-100" style="width: 30%; z-index: 1005; cursor: pointer;"></div>
-                <div onclick="nextStory3(event)" class="position-absolute end-0 top-0 h-100" style="width: 70%; z-index: 1005; cursor: pointer;"></div>
-
-                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1009;"></button>
-                
-                <div id="storyMediaContainer3" class="d-flex align-items-center justify-content-center bg-black" style="min-height: 500px; height: 100vh;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- MODAL CHỌN THƯ MỤC BOOKMARK --}}
-<div class="modal fade" id="bookmarkFolderModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content" style="border-radius: 15px;">
-            <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-bold">Lưu vào thư mục...</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="folderList" class="list-group list-group-flush mb-3" style="max-height: 200px; overflow-y: auto;"></div>
-                <div class="input-group input-group-sm">
-                    <input type="text" id="newFolderName" class="form-control" placeholder="Tên thư mục mới...">
-                    <button class="btn btn-primary" onclick="confirmBookmarkWithNewFolder()">Lưu</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <div class="post-item mb-4 border-bottom pb-3">
-        <div class="d-flex align-items-center mb-2">
-            <a href="{{ route('profile.show', 3) }}">
-                <img src="https://ui-avatars.com/api/?name=Lan+HCMUB&background=702963&color=fff" class="rounded-circle me-2" width="40" height="40">
-            </a>
-            <div>
-                <span class="fw-bold">lan_hcmub</span>
-                <small class="text-muted d-block">5 giờ trước</small>
-            </div>
-
-{{-- CSS hỗ trợ phần xem trước ảnh --}}
-<style>
-    .preview-box { position: relative; width: 60px; height: 60px; }
-    .preview-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-    .remove-btn { 
-        position: absolute; top: -5px; right: -5px; background: red; color: white; 
-        border-radius: 50%; width: 18px; height: 18px; font-size: 10px; 
-        display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid white;
-    }
-</style>
-
-<script>
-let storyInterval3;
-let currentStoryIdx = 0;
-let currentUserStories = [];
-
-// --- STORY LOGIC ---
-function openStoryModal3(userStories) {
-    currentUserStories = userStories;
-    currentStoryIdx = 0;
-    renderSingleStory();
-    const modal = new bootstrap.Modal(document.getElementById('storyModal3'));
-    modal.show();
-}
-
-function renderSingleStory() {
-    const story = currentUserStories[currentStoryIdx];
-    const container = document.getElementById('storyMediaContainer3');
-    const progressBar = document.getElementById('storyProgressBar3');
-    
-    document.getElementById('storyUserName3').innerText = story.user ? (story.user.username || story.user.name) : 'User #' + story.user_id;
-    document.getElementById('storyUserAvatar3').src = `https://ui-avatars.com/api/?name=User${story.user_id}&background=random`;
-    
-    const postDate = new Date(story.created_at);
-    document.getElementById('storyTime3').innerText = postDate.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-
-    container.innerHTML = ''; 
-    progressBar.style.width = '0%';
-    clearInterval(storyInterval3);
-
-    if (story.type === 'video') {
-        container.innerHTML = `<video src="${story.media_url}" autoplay muted playsinline style="max-width: 100%; max-height: 100vh;"></video>`;
-    } else {
-        container.innerHTML = `<img src="${story.media_url}" style="max-width: 100%; max-height: 100vh; object-fit: contain;">`;
-    }
-
-    let percent = 0;
-    storyInterval3 = setInterval(() => {
-        percent += 1;
-        progressBar.style.width = percent + '%';
-        if (percent >= 100) {
-            clearInterval(storyInterval3);
-            nextStory3();
-        }
-    }, 100); 
-}
-
-function nextStory3(event) {
-    if(event) event.stopPropagation();
-    clearInterval(storyInterval3);
-    currentStoryIdx++;
-    if (currentStoryIdx < currentUserStories.length) renderSingleStory();
-    else bootstrap.Modal.getInstance(document.getElementById('storyModal3')).hide();
-}
-
-function prevStory3(event) {
-    if(event) event.stopPropagation();
-    clearInterval(storyInterval3);
-    currentStoryIdx--;
-    if (currentStoryIdx < 0) currentStoryIdx = 0; 
-    renderSingleStory();
-}
-
-// --- BOOKMARK LOGIC ---
-let pendingPostId = null;
-let pendingElement = null;
-
-function toggleBookmark3(postId, element) {
-    const icon = element.querySelector('i');
-    
-    // Nếu icon đang đậm -> Gửi yêu cầu xóa mềm (toggle)
-    if (icon.classList.contains('fa-solid')) {
-        saveBookmarkAction(postId, 'Tất cả', element);
-        return;
-    }
-
-    pendingPostId = postId;
-    pendingElement = element;
-    
-    fetch('/bookmarks/folders')
-        .then(res => res.json())
-        .then(folders => {
-            let html = `<button onclick="confirmBookmark('Tất cả')" class="list-group-item list-group-item-action border-0 px-2 py-2 mb-1 rounded bg-light">📁 Tất cả</button>`;
-            folders.forEach(f => {
-                if(f !== 'Tất cả') html += `<button onclick="confirmBookmark('${f}')" class="list-group-item list-group-item-action border-0 px-2 py-2 mb-1 rounded bg-light">📁 ${f}</button>`;
-            });
-            document.getElementById('folderList').innerHTML = html;
-            new bootstrap.Modal(document.getElementById('bookmarkFolderModal')).show();
-        });
-}
-
-function confirmBookmark(folderName) {
-    saveBookmarkAction(pendingPostId, folderName, pendingElement);
-    bootstrap.Modal.getInstance(document.getElementById('bookmarkFolderModal')).hide();
-}
-
-function confirmBookmarkWithNewFolder() {
-    const input = document.getElementById('newFolderName');
-    const folderName = input.value.trim();
-    if (folderName) {
-        confirmBookmark(folderName);
-        input.value = '';
-    }
-}
-
-function saveBookmarkAction(postId, folderName, element) {
-    const icon = element.querySelector('i');
-    fetch(`/bookmarks/toggle/${postId}`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ folder_name: folderName })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'added') {
-            icon.classList.replace('fa-regular', 'fa-solid');
-            icon.classList.add('text-dark');
-        } else {
-            icon.classList.replace('fa-solid', 'fa-regular');
-            icon.classList.remove('text-dark');
-        }
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('storyModal3').addEventListener('hidden.bs.modal', () => {
-        clearInterval(storyInterval3);
-        document.getElementById('storyMediaContainer3').innerHTML = '';
-    });
-
-    const inp = document.getElementById('homePostImage');
-    const pre = document.getElementById('homeImagePreview');
-    let dt = new DataTransfer();
-
-    if(inp) {
-        inp.addEventListener('change', function() {
-            Array.from(this.files).forEach(file => {
-                if(!file.type.match('image.*')) return;
-                dt.items.add(file);
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.className = 'preview-box';
-                    div.innerHTML = `<img src="${e.target.result}"><span class="remove-btn">&times;</span>`;
-                    div.querySelector('.remove-btn').onclick = () => {
-                        div.remove();
-                        let ndt = new DataTransfer();
-                        Array.from(dt.files).filter(f => f !== file).forEach(f => ndt.items.add(f));
-                        dt = ndt;
-                        inp.files = dt.files;
-                    };
-                    pre.appendChild(div);
-                }
-                reader.readAsDataURL(file);
-            });
-            inp.files = dt.files;
-        });
-    }
-});
-</script>
 @endsection
 
 @section('suggestions')
-    <div class="px-2">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold text-secondary m-0" style="font-size: 0.9rem;">Gợi ý cho bạn</h6>
-            <a href="{{ route('users.suggestions') }}" class="text-dark fw-bold text-decoration-none" style="font-size: 0.75rem;">Xem tất cả</a>
-
-        </div>
-
-        @if(isset($suggestedUsers) && $suggestedUsers->count() > 0)
-            <div class="d-flex flex-column gap-3" id="main-suggestion-list">
-                @foreach($suggestedUsers as $user)
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random&color=fff" class="rounded-circle me-2" width="40" height="40">
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->username }}</span>
-                                <span class="text-muted" style="font-size: 0.8rem;">{{ $user->display_name }}</span>
-                            </div>
-                        </div>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <div class="fw-bold mb-3">Gợi ý theo dõi</div>
+        @auth
+            @forelse($suggestedUsers as $user)
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <a href="{{ route('profile.show', $user->id) }}" class="text-decoration-none text-dark d-flex align-items-center gap-2">
+                        <img src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($user->display_name ?? $user->username).'&background=random' }}" class="rounded-circle" width="34" height="34" alt="user">
                         <div>
-                            <form action="{{ route('users.follow', $user->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">Theo dõi</button>
-                            </form>
+                            <div class="fw-semibold" style="font-size: 0.88rem;">{{ $user->display_name ?? $user->username }}</div>
+                            <small class="text-muted">@{{ $user->username }}</small>
                         </div>
-                    </div>
-                @endforeach
-            </div>
+                    </a>
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill follow-btn" data-user-id="{{ $user->id }}">Theo dõi</button>
+                </div>
+            @empty
+                <p class="text-muted small mb-0">Hiện không có gợi ý mới.</p>
+            @endforelse
         @else
-            <p class="text-muted small">Hiện chưa có gợi ý mới nào.</p>
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($user->username) }}&background=random" 
-                                 class="rounded-circle me-2" width="32" height="32">
-                            <div class="d-flex flex-column">
-                                <span class="fw-bold text-dark" style="font-size: 0.85rem; line-height: 1;">{{ $user->username }}</span>
-                                <span class="text-muted" style="font-size: 0.75rem;">Gợi ý cho bạn</span>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-follow-ig border-0 bg-transparent text-primary fw-bold p-0" 
-                                style="font-size: 0.75rem;" data-user-id="{{ $user->id }}">
-                            Theo dõi
-                        </button>
-                    </div>
-                @endforeach
-            </div>
-        @endif
+            <p class="text-muted small mb-0">Đăng nhập để xem gợi ý theo dõi.</p>
+        @endauth
     </div>
+</div>
 
-@endsection
-
-
-@section('suggestions')
-
-    <p class="px-2 text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="fw-bold">Bài đã lưu</div>
+            <a href="{{ route('bookmarks.index') }}" class="small text-decoration-none">Xem tất cả</a>
+        </div>
+        @auth
+            @forelse($savedPosts as $saved)
+                <div class="mb-2">
+                    <a href="{{ route('home') }}#post-{{ $saved->post_id }}" class="text-decoration-none">
+                        <div class="small fw-semibold text-dark text-truncate">{{ $saved->post?->content ?? 'Bài viết đã bị xóa' }}</div>
+                        <small class="text-muted">{{ $saved->post?->author?->display_name ?? $saved->post?->author?->username ?? 'Không xác định' }}</small>
+                    </a>
+                </div>
+            @empty
+                <p class="text-muted small mb-0">Bạn chưa lưu bài viết nào.</p>
+            @endforelse
+        @else
+            <p class="text-muted small mb-0">Đăng nhập để xem bài viết đã lưu.</p>
+        @endauth
+    </div>
+</div>
 @endsection
 
 @section('scripts')
 <script>
     (() => {
-        const feedUrl = "{{ route('feed.latest') }}";
-        const feedList = document.getElementById('feedList');
-        const feedStatus = document.getElementById('feedStatus');
-        let latestCreatedAt = null;
+        const csrf = "{{ csrf_token() }}";
 
-        const escapeHtml = (unsafe) => {
-            const node = document.createElement('div');
-            node.textContent = unsafe ?? '';
-            return node.innerHTML;
-        };
+        document.body.addEventListener('click', async (event) => {
+            const followBtn = event.target.closest('.follow-btn');
+            if (followBtn) {
+                const userId = followBtn.getAttribute('data-user-id');
+                try {
+                    const response = await fetch(`/users/${userId}/follow`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            Accept: 'application/json'
+                        }
+                    });
 
-        const renderAvatar = (post) => {
-            if (post.author.avatar_url) {
-                return `<img src="${escapeHtml(post.author.avatar_url)}" class="rounded-circle me-2" width="40" height="40" alt="avatar">`;
-            }
-
-            const name = encodeURIComponent(post.author.display_name || 'User');
-            return `<img src="https://ui-avatars.com/api/?name=${name}&background=0D8ABC&color=fff" class="rounded-circle me-2" width="40" height="40" alt="avatar">`;
-        };
-
-        const renderPost = (post) => {
-            const content = renderContent(post.content || 'Bài viết chưa có nội dung.');
-            const displayName = escapeHtml(post.author.display_name || 'Người dùng');
-            const username = escapeHtml(post.author.username || 'guest');
-            const timeLabel = escapeHtml(post.created_at_human || 'Vừa xong');
-            const mediaBlock = post.media_url
-                ? `<div class="rounded-3 overflow-hidden border mb-2"><img src="${escapeHtml(post.media_url)}" class="img-fluid w-100" alt="media"></div>`
-                : '';
-
-            return `
-                <div class="post-item mb-4 border-bottom pb-3" data-post-id="${post.id}">
-                    <div class="d-flex align-items-center mb-2">
-                        ${renderAvatar(post)}
-                        <div>
-                            <span class="fw-bold">${username}</span>
-                            <small class="text-muted d-block">${displayName} · ${timeLabel}</small>
-                        </div>
-                    </div>
-                    <div class="post-content ps-5">
-                        <p class="mb-2">${content}</p>
-                        ${mediaBlock}
-                        <div class="post-actions d-flex gap-4 text-secondary">
-                            <span><i class="fa-regular fa-heart me-1"></i> ${post.like_count}</span>
-                            <span><i class="fa-regular fa-comment me-1"></i> ${post.comment_count}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderContent = (value) => {
-            const escaped = escapeHtml(value || '');
-            return escaped.replace(/(^|\s)@([a-zA-Z0-9_\.]+)/g, '$1<span class="text-primary fw-semibold">@$2</span>');
-        };
-
-        const renderEmpty = () => {
-            feedList.innerHTML = `
-                <div class="alert alert-light border text-muted">
-                    Chưa có bài viết nào trên bảng tin. Khi bạn bè hoặc tài khoản theo dõi đăng bài mới, dữ liệu sẽ tự cập nhật.
-                </div>
-            `;
-        };
-
-        const updateFeed = async (incremental = false) => {
-            try {
-                const url = new URL(feedUrl, window.location.origin);
-                if (incremental && latestCreatedAt) {
-                    url.searchParams.set('since', latestCreatedAt);
-                }
-
-                const response = await fetch(url.toString(), {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Không lấy được dữ liệu bảng tin');
-                }
-
-                const payload = await response.json();
-                const posts = payload.data || [];
-
-                if (!incremental) {
-                    if (!posts.length) {
-                        renderEmpty();
-                    } else {
-                        feedList.innerHTML = posts.map(renderPost).join('');
+                    if (!response.ok) {
+                        return;
                     }
-                } else if (posts.length) {
-                    const html = posts.map(renderPost).join('');
-                    feedList.insertAdjacentHTML('afterbegin', html);
-                }
 
-                if (posts.length && posts[0].created_at) {
-                    latestCreatedAt = posts[0].created_at;
-                }
-
-                const countLabel = posts.length ? `Đã cập nhật ${posts.length} bài viết mới.` : 'Không có bài viết mới.';
-                feedStatus.textContent = `${countLabel} Tự làm mới mỗi 10 giây.`;
-            } catch (error) {
-                feedStatus.textContent = 'Không thể tải bảng tin. Vui lòng thử lại.';
-            }
-        };
-
-        updateFeed(false);
-        setInterval(() => updateFeed(true), 10000);
-    })();
-</script>
-@endsection
-
-    <div class="p-3">
-        @auth
-            
-        @endauth
-        <p class="text-muted small">Danh sách gợi ý sẽ do Quỳnh (TV4) phụ trách.</p>
-    </div>
-@endsection
-
-{{-- Script này dùng chung cho cả trang Home và trang Suggestions --}}
-<script>
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('btn-follow-ig')) {
-        const btn = e.target;
-        const userId = btn.getAttribute('data-user-id');
-
-        fetch(`/users/${userId}/follow`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'followed') {
-                btn.innerText = 'Đang theo dõi';
-                btn.classList.replace('text-primary', 'text-dark');
-            } else {
-                btn.innerText = 'Theo dõi';
-                btn.classList.replace('text-dark', 'text-primary');
-            }
-        });
-    }
-});
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- PHẦN 1: GIỮ VỊ TRÍ CUỘN ---
-        const scrollPos = localStorage.getItem('social_app_scrollpos');
-        if (scrollPos) {
-            setTimeout(() => {
-                window.scrollTo({ top: parseInt(scrollPos), behavior: 'instant' });
-                localStorage.removeItem('social_app_scrollpos');
-            }, 100); 
-        }
-
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function() {
-                localStorage.setItem('social_app_scrollpos', window.scrollY);
-            });
-        });
-
-        // --- PHẦN 2: XỬ LÝ AJAX XEM THÊM BÌNH LUẬN ---
-        document.body.addEventListener('click', function (e) {
-            const btn = e.target.closest('.load-more-btn');
-            if (!btn) return;
-
-            e.preventDefault();
-            const postId = btn.getAttribute('data-post-id');
-            const extraContainer = document.getElementById(`extra-comments-${postId}`);
-
-            if (extraContainer.innerHTML.trim() !== "") {
-                if (extraContainer.style.display === "none") {
-                    extraContainer.style.display = "block";
-                    btn.innerHTML = '<i class="fa-solid fa-angle-up me-1"></i> Thu gọn bình luận';
-                } else {
-                    extraContainer.style.display = "none";
-                    btn.innerHTML = `<i class="fa-solid fa-comments me-1"></i> Xem thêm bình luận khác...`;
+                    const payload = await response.json();
+                    followBtn.textContent = payload.status === 'followed' ? 'Đang theo dõi' : 'Theo dõi';
+                    followBtn.classList.toggle('btn-primary', payload.status === 'followed');
+                    followBtn.classList.toggle('btn-outline-primary', payload.status !== 'followed');
+                } catch (error) {
+                    // ignore
                 }
                 return;
             }
 
-            const originalText = btn.innerHTML;
-            btn.innerText = "Đang tải...";
-            
-            // LƯU Ý: Đường dẫn ở đây đã được cập nhật
-            fetch(`/posts/${postId}/load-more-comments`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+            const bookmarkBtn = event.target.closest('.bookmark-btn');
+            if (bookmarkBtn) {
+                const postId = bookmarkBtn.getAttribute('data-post-id');
+                try {
+                    const response = await fetch(`/bookmarks/toggle/${postId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json'
+                        },
+                        body: JSON.stringify({ folder_name: 'Tất cả' })
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    const icon = bookmarkBtn.querySelector('i');
+                    const added = payload.status === 'added';
+                    icon.classList.toggle('fa-solid', added);
+                    icon.classList.toggle('fa-regular', !added);
+                    icon.classList.toggle('text-primary', added);
+                    icon.classList.toggle('text-secondary', !added);
+                } catch (error) {
+                    // ignore
                 }
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then(data => {
-                extraContainer.innerHTML = data.html;
-                extraContainer.style.display = "block";
-                btn.innerHTML = '<i class="fa-solid fa-angle-up me-1"></i> Thu gọn bình luận';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                btn.innerHTML = originalText;
-                alert("Không thể tải thêm bình luận lúc này.");
-            });
-        });
-
-        // --- PHẦN 3: XỬ LÝ MENTION ---
-        window.addMention = function(username, postId) {
-            const textarea = document.querySelector(`#shareModal${postId} textarea`);
-            if(textarea) {
-                textarea.value += `@${username} `;
-                textarea.focus();
+                return;
             }
-        }
-    });
-</script>
 
+            const loadMoreBtn = event.target.closest('.load-more-btn');
+            if (!loadMoreBtn) {
+                return;
+            }
+
+            const postId = loadMoreBtn.getAttribute('data-post-id');
+            const container = document.getElementById(`extra-comments-${postId}`);
+            if (!container) {
+                return;
+            }
+
+            if (container.innerHTML.trim() !== '') {
+                container.classList.toggle('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/posts/${postId}/load-more-comments`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    return;
+                }
+                const payload = await response.json();
+                container.innerHTML = payload.html || '';
+            } catch (error) {
+                // ignore
+            }
+        });
+    })();
+</script>
+@endsection

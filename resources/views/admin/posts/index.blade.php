@@ -97,7 +97,7 @@
                             <span class="text-dark fw-bold" style="font-size: 0.8rem;">{{ \Carbon\Carbon::parse($post->created_at)->format('d/m/Y') }}</span>
                         </td>
                         <td class="text-end px-4">
-                            <a href="#" class="btn btn-light btn-sm rounded-pill me-1"><i class="fa-solid fa-eye text-primary"></i></a>
+                            <a href="{{ route('posts3.show', $post->id) }}" class="btn btn-light btn-sm rounded-pill me-1"><i class="fa-solid fa-eye text-primary"></i></a>
                             <form action="{{ route('admin.posts.delete', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa bài viết này?');">
                                 @csrf
                                 <button type="submit" class="btn btn-light btn-sm rounded-pill"><i class="fa-solid fa-trash text-danger"></i></button>
