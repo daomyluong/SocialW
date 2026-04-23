@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,17 +31,33 @@ class ProfileController extends Controller
 
         $isOwnProfile = (bool) $authUser && (int) $authUser->id === (int) $user->id;
 
+        $postAuthorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
+            ? 'user_id'
+            : 'author_user_id';
+
         $postCount = Schema::hasTable('posts')
             ? DB::table('posts')
-                ->where('author_user_id', $user->id)
-                ->where('is_deleted', false)
-                ->count()
+            ->where($postAuthorColumn, $user->id)
+            ->where('is_deleted', false)
+            ->count()
             : 0;
 
         $followingCount = $user->following_count ?? $user->following()->count();
         $followerCount = $user->follower_count ?? $user->followers()->count();
 
-        return view('profile.show', compact('user', 'isOwnProfile', 'postCount', 'followingCount', 'followerCount'));
+        $isFollowing = false;
+        if ($authUser && (int)$authUser->id !== (int)$user->id) {
+            $isFollowing = DB::table('followers')
+                ->where('follower_user_id', $authUser->id)
+                ->where('following_user_id', $user->id)
+                ->exists();
+        }
+        $posts = \App\Models\Post::with('media')
+                         ->where('author_user_id', $user->id) 
+                         ->where('is_deleted', false)
+                         ->latest()
+                         ->get();
+        return view('profile.show', compact('user', 'isOwnProfile', 'postCount', 'followingCount', 'followerCount', 'isFollowing', 'posts'));
     }
 
     public function edit(): View|RedirectResponse
@@ -80,11 +97,11 @@ class ProfileController extends Controller
 
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
-            $fileName = time().'_'.$file->getClientOriginalName();
+            $fileName = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/avatars'), $fileName);
 
             if (Schema::hasColumn('users', 'avatar_url')) {
-                $user->avatar_url = 'uploads/avatars/'.$fileName;
+                $user->avatar_url = 'uploads/avatars/' . $fileName;
             }
         }
 
@@ -95,7 +112,7 @@ class ProfileController extends Controller
         return redirect()->route('profile.show', $user->id)->with('success', 'Cập nhật thành công!');
     }
 
-    public function follow(Request $request, int $id): RedirectResponse
+    public function follow(Request $request, int $id): JsonResponse|RedirectResponse
     {
         /** @var User|null $currentUser */
         $currentUser = Auth::user();
@@ -121,6 +138,10 @@ class ProfileController extends Controller
             $currentUser->decrement('following_count');
         }
 
-        return back()->with('success', 'Cập nhật theo dõi thành công!');
+        $isFollowing = ! $alreadyFollowing;
+
+        return response()->json([
+            'is_following' => $isFollowing,
+        ]);
     }
 }

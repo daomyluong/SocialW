@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 
+
 @section('admin_title', 'Bảng Điều Khiển')
+
 
 @section('content')
 <style>
@@ -8,16 +10,17 @@
     .card-pastel { border-radius: 1.25rem; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.03); transition: transform 0.2s; }
     .card-pastel:hover { transform: translateY(-3px); }
     .icon-box { width: 50px; height: 50px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-    
+   
     /* Bộ mã màu Thanh nhã */
     .bg-soft-blue { background-color: #f0f4fd; color: #4b7bec; }
     .bg-soft-green { background-color: #eafaf1; color: #20bf6b; }
     .bg-soft-purple { background-color: #f6f0fb; color: #8854d0; }
     .bg-soft-peach { background-color: #fdf4ec; color: #fa8231; }
-    
+   
     .table-custom th { border-bottom: none; color: #a4b0be; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
     .table-custom td { vertical-align: middle; border-bottom: 1px solid #f1f2f6; }
 </style>
+
 
 <div class="container-fluid px-0">
     <div class="row mb-4 g-3">
@@ -67,6 +70,7 @@
         </div>
     </div>
 
+
     <div class="row mb-4 g-3">
         <div class="col-lg-8">
             <div class="card card-pastel h-100 p-3">
@@ -79,6 +83,7 @@
                 </div>
             </div>
         </div>
+
 
         <div class="col-lg-4">
             <div class="card card-pastel h-100 p-3">
@@ -110,6 +115,7 @@
         </div>
     </div>
 
+
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="card card-pastel p-3 h-100">
@@ -122,9 +128,6 @@
                             <thead><tr><th>Người dùng</th><th>Vai trò</th><th class="text-end">Followers</th></tr></thead>
                             <tbody>
                                 @foreach($top_users as $user)
-                                @php
-                                    $userRole = strtolower((string) data_get($user, 'role', 'member'));
-                                @endphp
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -132,7 +135,7 @@
                                             <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $user->display_name }}</span>
                                         </div>
                                     </td>
-                                    <td><span class="badge {{ $userRole == 'admin' ? 'bg-soft-purple' : 'bg-light text-secondary' }} rounded-pill">{{ ucfirst($userRole) }}</span></td>
+                                    <td><span class="badge {{ $user->role == 'admin' ? 'bg-soft-purple' : 'bg-light text-secondary' }} rounded-pill">{{ ucfirst($user->role) }}</span></td>
                                     <td class="text-end fw-bold text-dark">{{ $user->follower_count }}</td>
                                 </tr>
                                 @endforeach
@@ -142,6 +145,7 @@
                 </div>
             </div>
         </div>
+
 
         <div class="col-lg-6">
             <div class="card card-pastel p-3 h-100">
@@ -174,18 +178,21 @@
     </div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     var chartLabels = {!! json_encode($chart_labels) !!};
     var chartData = {!! json_encode($chart_data) !!};
 
+
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('postsChart').getContext('2d');
-        
+       
         // Tạo gradient màu tím/xanh cho biểu đồ cho điệu đà
         let gradient = ctx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, 'rgba(136, 84, 208, 0.2)'); // Tím nhạt
         gradient.addColorStop(1, 'rgba(136, 84, 208, 0)');
+
 
         const postsChart = new Chart(ctx, {
             type: 'line',
@@ -208,12 +215,13 @@
             options: {
                 responsive: true,
                 plugins: { legend: { display: false } },
-                scales: { 
+                scales: {
                     x: { grid: { display: false } }, // Ẩn lưới dọc cho mượt
-                    y: { beginAtZero: true, ticks: { precision: 0 }, border: { dash: [5, 5] } } 
+                    y: { beginAtZero: true, ticks: { precision: 0 }, border: { dash: [5, 5] } }
                 }
             }
         });
     });
 </script>
 @endsection
+

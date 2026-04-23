@@ -27,7 +27,7 @@ class PostsModuleTest extends TestCase
             ->assertRedirect(route('home'));
 
         $this->assertDatabaseHas('posts', [
-            'author_user_id' => $user->id,
+            'user_id' => $user->id,
             'content' => 'TV3 text post content',
             'visibility' => 'public',
         ]);
@@ -63,7 +63,7 @@ class PostsModuleTest extends TestCase
         ]);
 
         $post = Post::create([
-            'author_user_id' => $owner->id,
+            'user_id' => $owner->id,
             'content' => 'Owner content',
             'visibility' => 'public',
             'is_deleted' => 0,
@@ -112,21 +112,21 @@ class PostsModuleTest extends TestCase
         ]);
 
         Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'PUBLIC_POST_TEXT',
             'visibility' => 'public',
             'is_deleted' => 0,
         ]);
 
         Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'FOLLOWER_POST_TEXT',
             'visibility' => 'follower',
             'is_deleted' => 0,
         ]);
 
         Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'PRIVATE_POST_TEXT',
             'visibility' => 'private',
             'is_deleted' => 0,

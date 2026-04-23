@@ -76,7 +76,7 @@ class SocialModuleTest extends TestCase
         ]);
 
         $post = Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'LIKE_POST_TEXT',
             'visibility' => 'public',
             'is_deleted' => 0,
@@ -111,7 +111,7 @@ class SocialModuleTest extends TestCase
         ]);
 
         $post = Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'COMMENT_POST_TEXT',
             'visibility' => 'public',
             'is_deleted' => 0,

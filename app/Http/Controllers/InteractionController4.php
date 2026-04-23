@@ -12,22 +12,23 @@ use App\Models\Notification;
 
 class InteractionController4 extends Controller
 {
-    // --- CHỨC NĂNG LIKE ---
-    public function like(Post $post)
+    public function like(Request $request, Post $post)
     {
         $userId = Auth::id();
         if (! $userId) {
-            return redirect()->route('login');
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => 'Unauthenticated'], 401)
+                : redirect()->route('login');
         }
-        
-        // Kiểm tra xem đã like chưa (Tra cứu trong bảng post_likes từ file social.sql)
-        $like = DB::table('post_likes')
-                  ->where('post_id', $post->id)
-                  ->where('user_id', $userId);
 
-        if ($like->exists()) {
-            $like->delete();
-            $post->decrement('like_count'); // Cập nhật thống kê như file social.sql yêu cầu
+        $likeQuery = DB::table('post_likes')
+            ->where('post_id', $post->id)
+            ->where('user_id', $userId);
+
+        if ($likeQuery->exists()) {
+            $likeQuery->delete();
+            $post->decrement('like_count');
+            $liked = false;
         } else {
             DB::table('post_likes')->insert([
                 'post_id' => $post->id,
@@ -36,6 +37,7 @@ class InteractionController4 extends Controller
                 'updated_at' => now(),
             ]);
             $post->increment('like_count');
+            $liked = true;
 
             if ((int) $post->author_user_id !== (int) $userId) {
                 Notification::create([
@@ -49,67 +51,82 @@ class InteractionController4 extends Controller
             }
         }
 
-        return redirect()->to(url()->previous() . '#post-' . $post->id);    
+        $post->refresh();
+
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'liked' => $liked,
+                'likeCount' => (int) $post->like_count,
+            ]);
+        }
+
+        return back()->with('success', $liked ? 'Đã thích bài viết.' : 'Đã bỏ thích bài viết.');
     }
 
-    // --- CHỨC NĂNG BÌNH LUẬN ---
     public function comment(Request $request, Post $post)
     {
         $userId = Auth::id();
         if (! $userId) {
-            return redirect()->route('login');
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => 'Unauthenticated'], 401)
+                : redirect()->route('login');
         }
 
-        $request->validate(['content' => 'required']);
+        $validated = $request->validate(['content' => 'required|string|max:2000']);
 
-        Comment4::create([
+        $comment = Comment4::create([
             'post_id' => $post->id,
             'user_id' => $userId,
-            'content' => $request->input('content'),
+            'content' => $validated['content'],
         ]);
 
-        $post->increment('comment_count'); // Cập nhật thống kê bài viết
+        $post->increment('comment_count');
 
         if ((int) $post->author_user_id !== (int) $userId) {
             Notification::create([
                 'user_id' => $post->author_user_id,
                 'sender_id' => $userId,
                 'post_id' => $post->id,
+                'comment_id' => $comment->id,
                 'type' => 'comment',
                 'message' => 'đã bình luận về bài viết của bạn',
                 'is_read' => 0,
             ]);
         }
 
-        return redirect()->to(url()->previous() . '#post-' . $post->id);
-    }
+        $post->refresh();
 
-    // File: App/Http/Controllers/InteractionController4.php
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'commentCount' => (int) $post->comment_count,
+            ]);
+        }
+
+        return redirect()->route('posts3.show', $post->id)->with('success', 'Đã thêm bình luận.');
+    }
 
     public function show(Request $request, Post $post)
     {
         if ($request->ajax()) {
-            // Lấy bình luận từ thứ 6 trở đi, CẦN THÊM take() ĐỂ TRÁNH LỖI MYSQL
             $comments = Comment4::where('post_id', $post->id)
-                                ->with('user')
-                                ->orderBy('created_at', 'desc')
-                                ->skip(5)
-                                ->take(100) // Đã thêm giới hạn để MySQL không báo lỗi
-                                ->get();
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->skip(5)
+                ->take(100)
+                ->get();
 
-            // Kiểm tra xem file comment_list nằm ở đâu để gọi cho đúng:
-            // Nếu nằm trong resources/views/components/ => Để nguyên 'components.comment_list'
-            // Nếu nằm ngoài resources/views/ => Đổi thành 'comment_list'
             return response()->json([
-                'html' => view('components.comment_list', compact('comments'))->render() 
+                'html' => view('components.comment_list', compact('comments'))->render(),
             ]);
         }
 
         return response()->json(['error' => 'Yêu cầu không hợp lệ'], 400);
     }
+
     public function destroyComment(Comment4 $comment)
     {
-        // Kiểm tra quyền: Chủ comment HOẶC Admin (ID = 1) mới được xóa
         if (Auth::id() == $comment->user_id || Auth::id() == 1) {
             $comment->delete();
             Post::find($comment->post_id)?->decrement('comment_count');
@@ -117,53 +134,82 @@ class InteractionController4 extends Controller
 
         return back();
     }
-    
-    // --- CHỨC NĂNG CHIA SẺ ---
+
     public function share(Request $request, Post $post)
     {
         $request->validate([
-            'comment' => 'nullable|string|max:500' // Lời nhắn khi share
+            'comment' => 'nullable|string|max:500',
         ]);
 
         $userId = Auth::id();
         if (! $userId) {
-            return redirect()->route('login');
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => 'Unauthenticated'], 401)
+                : redirect()->route('login');
         }
 
-        // Lưu vào bảng post_shares theo đúng cấu trúc SQL của bạn
-        \Illuminate\Support\Facades\DB::table('post_shares')->insert([
-            'user_id'    => $userId,
-            'post_id'    => $post->id,
-            'comment'    => $request->comment, // Lời nhắn (ví dụ: "Gửi cho @tuannguyen")
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $sharedComment = trim((string) $request->input('comment', ''));
+        $post->loadMissing(['media', 'author']);
+        $originalAuthorName = $post->author?->display_name ?? $post->author?->username ?? 'một người dùng';
 
-        // Tăng số lượng share_count ở bảng posts
-        $post->increment('share_count');
+        DB::transaction(function () use ($userId, $post, $sharedComment, $originalAuthorName): void {
+            $sharedPost = new Post();
+            $sharedPost->author_user_id = $userId;
+            $sharedPost->content = trim(
+                ($sharedComment !== '' ? $sharedComment . PHP_EOL . PHP_EOL : '') .
+                'Đã chia sẻ bài viết của ' . $originalAuthorName . ':' . PHP_EOL . PHP_EOL .
+                (string) $post->content
+            );
+            $sharedPost->visibility = $post->visibility ?? 'public';
+            $sharedPost->is_deleted = 0;
+            $sharedPost->save();
 
-        if ((int) $post->author_user_id !== (int) $userId) {
-            Notification::create([
-                'user_id' => $post->author_user_id,
-                'sender_id' => $userId,
+            if ($post->relationLoaded('media') && $post->media->isNotEmpty()) {
+                $sharedPost->media()->attach($post->media->pluck('id')->all());
+            }
+
+            DB::table('post_shares')->insert([
+                'user_id' => $userId,
                 'post_id' => $post->id,
-                'type' => 'share',
-                'message' => 'đã chia sẻ bài viết của bạn',
-                'is_read' => 0,
+                'comment' => $sharedComment !== '' ? $sharedComment : null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $post->increment('share_count');
+
+            if ((int) $post->author_user_id !== (int) $userId) {
+                Notification::create([
+                    'user_id' => $post->author_user_id,
+                    'sender_id' => $userId,
+                    'post_id' => $post->id,
+                    'type' => 'share',
+                    'message' => 'đã chia sẻ bài viết của bạn',
+                    'is_read' => 0,
+                ]);
+            }
+        });
+
+        $post->refresh();
+
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'shareCount' => (int) $post->share_count,
+                'message' => 'Bạn đã chia sẻ bài viết thành công.',
             ]);
         }
 
-        return redirect()->to(url()->previous() . '#post-' . $post->id) -> with('success', 'Bạn đã chia sẻ bài viết lên tường thành công!');
+        return back()->with('success', 'Bạn đã chia sẻ bài viết lên tường thành công!');
     }
 
-    // --- CHỨC NĂNG FOLLOW ---
     public function toggleFollow(User $user)
     {
         $request = request();
         $authId = Auth::id();
         $me = $authId ? User::find($authId) : null;
 
-        if (!$me || $me->id === $user->id) {
+        if (! $me || $me->id === $user->id) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Không thể tự theo dõi'], 400);
             }
@@ -172,8 +218,8 @@ class InteractionController4 extends Controller
         }
 
         $isFollowing = DB::table('followers')
-                        ->where('follower_user_id', $me->id)
-                        ->where('following_user_id', $user->id);
+            ->where('follower_user_id', $me->id)
+            ->where('following_user_id', $user->id);
 
         if ($isFollowing->exists()) {
             $isFollowing->delete();
@@ -198,47 +244,9 @@ class InteractionController4 extends Controller
 
         return back()->with('success', $status === 'followed' ? 'Đã theo dõi người dùng.' : 'Đã hủy theo dõi người dùng.');
     }
+
     public function likePost(Post $post)
-{
-        $userId = Auth::id();
-        if (! $userId) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
-        }
-
-    $likeQuery = DB::table('post_likes')->where('post_id', $post->id)->where('user_id', $userId);
-
-    if ($likeQuery->exists()) {
-        $likeQuery->delete();
-        $liked = false;
-        $post->decrement('like_count'); 
-    } else {
-        DB::table('post_likes')->insert([
-            'post_id' => $post->id,
-            'user_id' => $userId,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $liked = true;
-        $post->increment('like_count');
-
-        // --- ĐÂY LÀ PHẦN MỚI THÊM VÀO ---
-        if ($post->author_user_id != $userId) {
-            \App\Models\Notification::create([
-                'user_id'   => $post->author_user_id,
-                'sender_id' => $userId,
-                'post_id'   => $post->id,
-                'type'      => 'like',
-                'message'   => 'đã thích bài viết của bạn',
-                'is_read'   => 0,
-            ]);
-        }
+    {
+        return $this->like(request(), $post);
     }
-
-    // return json
-    return response()->json([
-        'success' => true,
-        'liked' => $liked,
-        'likeCount' => DB::table('post_likes')->where('post_id', $post->id)->count()
-    ]);
-}
 }

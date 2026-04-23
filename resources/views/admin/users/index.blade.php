@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 
+
 @section('admin_title', 'Quản Lý Người Dùng')
+
 
 @section('content')
 <style>
@@ -17,7 +19,9 @@
         --soft-shadow-hover: 0 15px 35px rgba(79, 172, 254, 0.22);
     }
 
+
     body { background-color: var(--hlink-bg); }
+
 
     .card-soft {
         background: #ffffff;
@@ -27,7 +31,9 @@
         transition: 0.3s;
     }
 
+
     .card-soft:hover { box-shadow: var(--soft-shadow-hover); }
+
 
     .filter-pill, .search-soft {
         border-radius: 999px;
@@ -37,9 +43,12 @@
         font-weight: 500;
     }
 
+
     .filter-pill:focus, .search-soft:focus { box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2); }
 
+
     .table-soft { font-size: 0.92rem; color: #334155; }
+
 
     .table-soft th {
         border-bottom: 2px solid #f1f5f9;
@@ -51,6 +60,7 @@
         padding: 1rem;
     }
 
+
     .table-soft td {
         vertical-align: middle;
         padding: 1rem;
@@ -58,9 +68,11 @@
         color: #334155;
     }
 
+
     .table-soft tbody tr { transition: 0.2s; }
     .table-soft tbody tr:hover { background-color: #f8fafc; transform: translateY(-1px); }
     .table-soft tbody tr:first-child td { font-size: 0.95rem; }
+
 
     .btn-grad {
         background: var(--grad-primary);
@@ -73,11 +85,13 @@
         box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
     }
 
+
     .btn-grad:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(67, 233, 123, 0.4);
         color: white;
     }
+
 
     .btn-grad-soft {
         background: rgba(79, 172, 254, 0.12);
@@ -86,12 +100,15 @@
         box-shadow: none;
     }
 
+
     .btn-grad-soft:hover { background: rgba(79, 172, 254, 0.18); }
+
 
     .badge-admin { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
     .badge-user { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
     .badge-active { background-color: #f0fdfa; color: #0f766e; border: 1px solid var(--accent-teal); }
     .badge-locked { background-color: #fffbeb; color: #d97706; border: 1px solid var(--accent-amber); }
+
 
     .media-preview {
         width: 46px;
@@ -107,12 +124,14 @@
         border: 1px solid rgba(79, 172, 254, 0.2);
     }
 
+
     .violation-card {
         background: #f8fbff;
         border: 1px solid #e7f2ff;
         border-radius: 1rem;
         padding: 0.85rem 0.95rem;
     }
+
 
     .stat-chip {
         border-radius: 999px;
@@ -124,12 +143,15 @@
         font-size: 0.8rem;
     }
 
+
     .btn-status-lock { background: #ef4444; border: none; }
     .btn-status-unlock { background: #22c55e; border: none; }
+
 
     .admin-modal .modal-dialog {
         max-width: 1180px;
     }
+
 
     .admin-modal-shell {
         border-radius: 1.25rem;
@@ -140,17 +162,20 @@
         overflow: hidden;
     }
 
+
     .admin-modal-header {
         padding: 1.15rem 1.5rem;
         background: linear-gradient(180deg, rgba(79, 172, 254, 0.1) 0%, rgba(255, 255, 255, 0.9) 100%);
         border: none;
     }
 
+
     .admin-modal-title {
         color: #1f2937;
         font-weight: 800;
         letter-spacing: 0.01em;
     }
+
 
     .admin-modal-close {
         width: 34px;
@@ -162,16 +187,19 @@
         transition: 0.2s;
     }
 
+
     .admin-modal-close:hover {
         color: #f87171;
         border-color: rgba(248, 113, 113, 0.4);
         background: #fff1f2;
     }
 
+
     .admin-modal-body {
         padding: 1.35rem;
         min-height: 520px;
     }
+
 
     .modal-panel-soft {
         border-radius: 1rem;
@@ -179,6 +207,7 @@
         background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
         height: 100%;
     }
+
 
     .field-label {
         font-size: 0.73rem;
@@ -189,6 +218,7 @@
         margin-bottom: 0.4rem;
     }
 
+
     .input-soft {
         border-radius: 999px;
         border: 1px solid #e2e8f0;
@@ -197,11 +227,13 @@
         padding: 0.65rem 1rem;
     }
 
+
     .input-soft:focus {
         border-color: var(--hlink-blue);
         box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.22);
         background: #ffffff;
     }
+
 
     .avatar-preview-wrap {
         width: 148px;
@@ -218,6 +250,7 @@
         font-weight: 800;
     }
 
+
     .status-pill {
         display: inline-flex;
         align-items: center;
@@ -231,11 +264,13 @@
         font-weight: 700;
     }
 
+
     .admin-modal-footer {
         border: none;
         padding: 1rem 1.5rem 1.35rem;
         background: transparent;
     }
+
 
     .btn-cancel-soft {
         border-radius: 999px;
@@ -246,7 +281,9 @@
         font-weight: 600;
     }
 
+
     .btn-cancel-soft:hover { background: #eef2f7; color: #64748b; }
+
 
     .btn-confirm-grad {
         border-radius: 999px;
@@ -259,11 +296,13 @@
         transition: 0.25s;
     }
 
+
     .btn-confirm-grad:hover {
         transform: translateY(-1px);
         box-shadow: 0 12px 26px rgba(79, 172, 254, 0.28);
         color: #fff;
     }
+
 
     .btn-action-soft {
         border-radius: 999px;
@@ -275,10 +314,12 @@
         font-size: 0.86rem;
     }
 
+
     .btn-action-soft:hover {
         background: rgba(79, 172, 254, 0.18);
         color: #1d4ed8;
     }
+
 
     .btn-role-save {
         border-radius: 999px;
@@ -290,12 +331,15 @@
         font-size: 0.82rem;
     }
 
+
     .btn-role-save:hover {
         background: rgba(79, 172, 254, 0.2);
     }
 </style>
 
+
 <div class="container-fluid px-0">
+
 
     <div class="card card-soft mb-4 p-3">
         <form action="{{ route('admin.users.index') }}" method="GET" class="row g-3 align-items-center">
@@ -306,6 +350,7 @@
                 </div>
             </div>
 
+
             <div class="col-lg-2 col-md-6">
                 <select name="role" class="form-select filter-pill w-100">
                     <option value="">Tất cả Vai trò</option>
@@ -313,6 +358,7 @@
                     <option value="user" {{ request('role') == 'user' ? 'selected' : '' }}>User</option>
                 </select>
             </div>
+
 
             <div class="col-lg-2 col-md-6">
                 <select name="status" class="form-select filter-pill w-100">
@@ -322,16 +368,14 @@
                 </select>
             </div>
 
+
             <div class="col-lg-2 col-md-6">
                 <select name="sort" class="form-select filter-pill w-100">
                     <option value="latest" {{ request('sort', 'latest') == 'latest' ? 'selected' : '' }}>Mới nhất</option>
                     <option value="followers" {{ request('sort') == 'followers' ? 'selected' : '' }}>Nhiều người theo dõi nhất</option>
                 </select>
             </div>
-<<<<<<< HEAD
-            <div class="col-md-2 text-end">
-                <a href="{{ route('register') }}" class="btn btn-success fw-bold w-100" style="border-radius: 0.5rem;"><i class="fa-solid fa-plus me-2"></i>Thêm User</a>
-=======
+
 
             <div class="col-lg-3 col-md-6 d-flex gap-2">
                 <button type="submit" class="btn btn-grad w-100 fw-bold"><i class="fa-solid fa-filter me-1"></i> Lọc</button>
@@ -339,10 +383,10 @@
                     <i class="fa-solid fa-plus"></i>
                 </button>
                 <a href="{{ route('admin.users.index') }}" class="btn btn-grad-soft rounded-pill px-3" title="Thiết lập lại"><i class="fa-solid fa-rotate-left"></i></a>
->>>>>>> f08ac2c4ffce977e93c6bcc25f2e5ed81b7c9cb2
             </div>
         </form>
     </div>
+
 
     <div class="card card-soft overflow-hidden">
         <div class="table-responsive">
@@ -369,28 +413,6 @@
                                 <div class="media-preview me-3">
                                     <img src="https://ui-avatars.com/api/?name={{ urlencode($user->display_name ?? $user->name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="w-100 h-100 rounded-circle">
                                 </div>
-<<<<<<< HEAD
-                            </td>
-                            <td>
-                                @if($user->role == 'admin')
-                                    <span class="badge bg-soft-blue px-3 py-2 rounded-pill">Quản trị viên</span>
-                                @else
-                                    <span class="badge bg-light text-secondary px-3 py-2 rounded-pill">Người dùng</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($user->is_active == 1)
-                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fa-solid fa-circle me-1" style="font-size: 0.5rem;"></i> Hoạt động</span>
-                                @else
-                                    <span class="badge bg-soft-red px-3 py-2 rounded-pill"><i class="fa-solid fa-lock me-1" style="font-size: 0.5rem;"></i> Đã khóa</span>
-                                @endif
-                            </td>
-                            <td class="text-muted">{{ \Carbon\Carbon::parse($user->created_at)->format('d/m/Y') }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('profile.show', $user->id) }}" class="action-btn bg-light text-primary me-1" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></a>
-                                
-                                <a href="{{ route('profile.show', $user->id) }}" class="action-btn bg-light text-warning me-1" title="Đi đến trang cá nhân"><i class="fa-solid fa-pen"></i></a>
-=======
                                 <div>
                                     <div class="fw-semibold text-dark">{{ $user->display_name ?? $user->name ?? 'N/A' }}</div>
                                     <small class="text-muted d-block">{{ $user->email }}</small>
@@ -398,7 +420,7 @@
                                 </div>
                             </div>
                         </td>
->>>>>>> f08ac2c4ffce977e93c6bcc25f2e5ed81b7c9cb2
+
 
                         <td class="text-center">
                             @if(($user->role ?? 'user') === 'admin')
@@ -408,6 +430,7 @@
                             @endif
                         </td>
 
+
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2 flex-wrap">
                                 <span class="stat-chip"><i class="fa-solid fa-user-group me-1"></i> {{ $user->follower_count ?? 0 }} theo dõi</span>
@@ -415,10 +438,12 @@
                             </div>
                         </td>
 
+
                         <td class="text-center">
                             <div class="text-dark fw-bold" style="font-size: 0.85rem;">{{ \Carbon\Carbon::parse($lastActiveAt)->format('H:i') }}</div>
                             <div class="text-muted" style="font-size: 0.85rem;">{{ \Carbon\Carbon::parse($lastActiveAt)->format('d/m/Y') }}</div>
                         </td>
+
 
                         <td class="text-center">
                             @if((int) ($user->is_active ?? 1) === 1)
@@ -428,7 +453,14 @@
                             @endif
                         </td>
 
+
                         <td class="text-center px-4">
+                            <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Khóa tạm thời tài khoản #{{ $user->id }}?');">
+                                @csrf
+                                <button type="submit" class="btn btn-grad-soft rounded-pill px-3" title="{{ (int) ($user->is_active ?? 1) === 1 ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}" {{ $isSelf ? 'disabled' : '' }}>
+                                    <i class="fa-solid {{ (int) ($user->is_active ?? 1) === 1 ? 'fa-lock' : 'fa-lock-open' }}"></i>
+                                </button>
+                            </form>
                             <button type="button" class="btn btn-sm rounded-pill px-3 fw-bold text-white" style="background: #38bdf8; border: none;" data-bs-toggle="modal" data-bs-target="#modalUserReview{{ $user->id }}">
                                 Xem xét <i class="fa-solid fa-gavel ms-1"></i>
                             </button>
@@ -446,11 +478,13 @@
             </table>
         </div>
 
+
         <div class="p-4 d-flex justify-content-center">
             {{ $admin_users->links('vendor.pagination.admin-soft') }}
         </div>
     </div>
 </div>
+
 
 @foreach($admin_users as $user)
     @php
@@ -464,6 +498,7 @@
                     <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
+
                 <div class="modal-body admin-modal-body">
                     <div class="row g-0">
                         <div class="col-md-7 pe-md-3 mb-3 mb-md-0">
@@ -475,6 +510,7 @@
                                 </a>
                             </div>
 
+
                             <div class="p-3 bg-light rounded-3 h-100">
                                 <div class="d-flex align-items-center mb-3">
                                     <img src="https://ui-avatars.com/api/?name={{ urlencode($user->display_name ?? $user->name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-3" width="54" height="54">
@@ -483,6 +519,7 @@
                                         <small class="text-muted">{{ $user->email }}</small>
                                     </div>
                                 </div>
+
 
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -501,6 +538,7 @@
                             </div>
                             </div>
                         </div>
+
 
                         <div class="col-md-5 ps-md-3">
                             <div class="modal-panel-soft p-4" style="max-height: 100%; min-height: 420px; overflow-y: auto;">
@@ -529,6 +567,7 @@
                     </div>
                 </div>
 
+
                 <div class="modal-footer admin-modal-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" class="d-flex align-items-center gap-2 flex-wrap">
                         @csrf
@@ -539,6 +578,7 @@
                         <button type="submit" class="btn btn-role-save">Đổi vai trò</button>
                     </form>
 
+
                     <div class="d-flex gap-2">
                         <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline">
                             @csrf
@@ -546,6 +586,7 @@
                                 {{ (int)($user->is_active ?? 1) === 1 ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}
                             </button>
                         </form>
+
 
                         <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mềm tài khoản này không?');">
                             @csrf
@@ -558,6 +599,7 @@
     </div>
 @endforeach
 
+
 <div class="modal fade admin-modal" id="modalAddUser" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content admin-modal-shell">
@@ -565,6 +607,7 @@
                 <h5 class="modal-title admin-modal-title"><i class="fa-solid fa-user-plus me-2" style="color: #00c2ff;"></i> Tạo Tài Khoản Mới</h5>
                 <button type="button" class="admin-modal-close" data-bs-dismiss="modal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
             </div>
+
 
             <form action="{{ route('admin.users.store') }}" method="POST">
                 @csrf
@@ -581,6 +624,7 @@
                         </div>
                     </div>
 
+
                     <div class="col-lg-7">
                         <div class="modal-panel-soft p-4 h-100">
                             <div class="row g-3">
@@ -589,15 +633,18 @@
                                     <input id="displayNameInput" type="text" name="display_name" class="form-control input-soft" placeholder="Ví dụ: Linh Nguyễn" required>
                                 </div>
 
+
                                 <div class="col-12">
                                     <label for="emailInput" class="field-label">Email</label>
                                     <input id="emailInput" type="email" name="email" class="form-control input-soft" placeholder="example@socialw.local" required>
                                 </div>
 
+
                                 <div class="col-md-6">
                                     <label for="tempPasswordInput" class="field-label">Mật khẩu tạm</label>
                                     <input id="tempPasswordInput" type="text" name="temp_password" class="form-control input-soft" placeholder="Tối thiểu 6 ký tự" required>
                                 </div>
+
 
                                 <div class="col-md-6">
                                     <label for="roleInput" class="field-label">Vai trò</label>
@@ -612,6 +659,7 @@
                 </div>
             </div>
 
+
             <div class="modal-footer admin-modal-footer d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Hủy</button>
                 <button type="submit" class="btn btn-confirm-grad">Xác nhận tạo tài khoản</button>
@@ -621,21 +669,26 @@
     </div>
 </div>
 
+
 <script>
     (function () {
         const displayNameInput = document.getElementById('displayNameInput');
         const avatarPreview = document.getElementById('newUserAvatarPreview');
 
+
         if (!displayNameInput || !avatarPreview) {
             return;
         }
+
 
         const updateAvatarPreview = function () {
             const value = displayNameInput.value.trim();
             avatarPreview.textContent = value ? value.charAt(0).toUpperCase() : 'U';
         };
 
+
         displayNameInput.addEventListener('input', updateAvatarPreview);
     })();
 </script>
 @endsection
+

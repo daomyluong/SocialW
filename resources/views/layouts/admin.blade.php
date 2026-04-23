@@ -105,7 +105,7 @@
                 <i class="fa-solid fa-flag me-3"></i> Quản lý Báo cáo
             </a>
             {{-- Link QUAY LẠI TRANG CHỦ như cậu yêu cầu --}}
-            <a class="nav-link text-danger" href="{{ route('home') }}">
+            <a class="nav-link text-danger" href="{{ route('admin.back_home') }}">
                 <i class="fa-solid fa-arrow-left me-3"></i> Quay lại W-Social
             </a>
         </nav>
@@ -141,6 +141,10 @@
             {{-- Thông báo thành công/lỗi từ Session (Slide chương 3) --}}
             @if(session('status'))
                 <div class="alert alert-success">{{ session('status') }}</div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
 
             @yield('content')

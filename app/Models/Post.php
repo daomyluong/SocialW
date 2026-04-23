@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 class Post extends Model
 {
@@ -15,6 +16,7 @@ class Post extends Model
     protected $table = 'posts';
 
     protected $fillable = [
+        'user_id',
         'author_user_id',
         'content',
         'media_id',
@@ -36,12 +38,33 @@ class Post extends Model
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_user_id');
+        $authorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
+            ? 'user_id'
+            : 'author_user_id';
+
+        return $this->belongsTo(User::class, $authorColumn);
     }
 
     public function user(): BelongsTo
     {
         return $this->author();
+    }
+
+    public function getAuthorIdAttribute()
+    {
+
+        return $this->author_user_id;
+    }
+
+    public function setAuthorUserIdAttribute(mixed $value): void
+    {
+        if (Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')) {
+            $this->attributes['user_id'] = $value;
+
+            return;
+        }
+
+        $this->attributes['author_user_id'] = $value;
     }
 
     public function media(): BelongsToMany

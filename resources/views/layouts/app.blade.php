@@ -102,14 +102,8 @@
     </div>
 
     <div class="top-banner">
-        <form action="{{ route('search') }}" method="GET">
-            <div class="position-relative">
-                <i class="fa-solid fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <input type="text" name="query" class="search-box ps-5" placeholder="Tìm kiếm trên W-Social...">
-            </div>
-        </form>
 
-        <div class="user-area dropdown">
+        <div class="user-area dropdown ms-auto">
             @auth
                 <button type="button" class="btn d-flex align-items-center text-decoration-none dropdown-toggle text-dark p-0 border-0 bg-transparent" id="userDropdown" data-bs-toggle="dropdown">
                     <div class="text-end me-3 d-none d-sm-block">
@@ -161,7 +155,6 @@
             </div>
 
             <div class="col-lg-4 scrollable-column">
-                <h6 class="fw-bold text-dark mb-4 px-2">Gợi ý cho bạn</h6>
                 @yield('suggestions') 
                 <hr>
                 <div class="px-2"><small class="text-muted">© 2026 W-Social - Nhóm 1 HUB</small></div>

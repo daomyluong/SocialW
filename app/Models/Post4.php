@@ -10,6 +10,7 @@ class Post4 extends Model
     use HasFactory;
     protected $table = 'posts';
     protected $fillable = [
+        'user_id',
         'author_user_id',
         'content',
         'like_count',
@@ -20,9 +21,18 @@ class Post4 extends Model
     ];
 
     // 1 bài viết thuộc về 1 người dùng (tác giả)
-    public function author()
+    public function author() {
+    return $this->belongsTo(User::class, 'user_id');
+}
+
+    public function getAuthorUserIdAttribute(): mixed
     {
-        return $this->belongsTo(User::class, 'author_user_id');
+        return $this->getAttribute('user_id');
+    }
+
+    public function setAuthorUserIdAttribute(mixed $value): void
+    {
+        $this->attributes['user_id'] = $value;
     }
 
     // Một bài viết có thể có nhiều bình luận

@@ -72,7 +72,7 @@ class FeedSeeder extends Seeder
 
         $posts = [
             [
-                'author_user_id' => $loanId,
+                'user_id' => $loanId,
                 'content' => 'TV2 da xong khung Auth/Profile. Moi nguoi review luong profile nhe.',
                 'visibility' => 'public',
                 'like_count' => 3,
@@ -80,7 +80,7 @@ class FeedSeeder extends Seeder
                 'created_at' => $now->copy()->subMinutes(25),
             ],
             [
-                'author_user_id' => $thanhId,
+                'user_id' => $thanhId,
                 'content' => 'TV3 vua bo sung route posts index/create/store. Dang tiep tuc validate noi dung.',
                 'visibility' => 'public',
                 'like_count' => 5,
@@ -88,7 +88,7 @@ class FeedSeeder extends Seeder
                 'created_at' => $now->copy()->subMinutes(16),
             ],
             [
-                'author_user_id' => $quynhId,
+                'user_id' => $quynhId,
                 'content' => 'TV4 da xong API follow co ban. Chuan bi cap nhat like/unlike ngay toi.',
                 'visibility' => 'follower',
                 'like_count' => 4,
@@ -100,7 +100,7 @@ class FeedSeeder extends Seeder
         foreach ($posts as $post) {
             DB::table('posts')->updateOrInsert(
                 [
-                    'author_user_id' => $post['author_user_id'],
+                    'user_id' => $post['user_id'],
                     'content' => $post['content'],
                 ],
                 [

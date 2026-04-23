@@ -52,7 +52,7 @@ class AdminModuleTest extends TestCase
         ]);
 
         $post = Post::create([
-            'author_user_id' => $author->id,
+            'user_id' => $author->id,
             'content' => 'VIOLATION_POST_TEXT',
             'visibility' => 'public',
             'is_deleted' => 0,

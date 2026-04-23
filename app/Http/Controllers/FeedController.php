@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class FeedController extends Controller
 {
@@ -14,6 +15,9 @@ class FeedController extends Controller
     {
         $limit = min((int) $request->integer('limit', 20), 50);
         $since = $request->date('since');
+        $postAuthorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
+            ? 'user_id'
+            : 'author_user_id';
 
         try {
             $query = Post::query()
@@ -29,13 +33,13 @@ class FeedController extends Controller
                     ->map(fn ($id) => (int) $id)
                     ->all();
 
-                $query->where(function ($visibilityScope) use ($userId, $followingIds): void {
+                $query->where(function ($visibilityScope) use ($userId, $followingIds, $postAuthorColumn): void {
                     $visibilityScope
                         ->where('visibility', 'public')
-                        ->orWhere('author_user_id', $userId)
-                        ->orWhere(function ($followersScope) use ($followingIds): void {
+                        ->orWhere($postAuthorColumn, $userId)
+                        ->orWhere(function ($followersScope) use ($followingIds, $postAuthorColumn): void {
                             $followersScope
-                                ->whereIn('author_user_id', $followingIds)
+                                ->whereIn($postAuthorColumn, $followingIds)
                                 ->whereIn('visibility', ['public', 'follower']);
                         });
                 });

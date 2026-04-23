@@ -18,15 +18,18 @@ class Comment4 extends Model
         'is_deleted',
     ];
 
-    // Một bình luận thuộc về một bài viết.
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user()
+    {
+        return $this->author();
+    }
+
     public function post()
     {
         return $this->belongsTo(Post::class, 'post_id');
-    }
-
-    // Một bình luận được viết bởi một người dùng.
-    public function user() // Đổi tên hàm thành user cho tự nhiên, hoặc author cũng được
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }
