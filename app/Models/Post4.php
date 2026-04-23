@@ -11,7 +11,6 @@ class Post4 extends Model
     protected $table = 'posts';
     protected $fillable = [
         'user_id',
-        'author_user_id',
         'content',
         'like_count',
         'comment_count',
@@ -22,8 +21,8 @@ class Post4 extends Model
 
     // 1 bài viết thuộc về 1 người dùng (tác giả)
     public function author() {
-    return $this->belongsTo(User::class, 'user_id');
-}
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function getAuthorUserIdAttribute(): mixed
     {

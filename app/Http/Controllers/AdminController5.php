@@ -22,7 +22,7 @@ class AdminController5 extends Controller
     
     private function postUserColumn(): string
     {
-        return Schema::hasColumn('posts', 'user_id') ? 'posts.user_id' : 'posts.author_user_id';
+        return Schema::hasColumn('posts', 'user_id') ? 'posts.user_id' : 'posts.user_id';
     }
 
     private function currentAdminUserId(): ?int

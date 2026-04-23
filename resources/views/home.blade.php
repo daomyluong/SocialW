@@ -194,7 +194,7 @@
                 <img src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($user->display_name ?? $user->username).'&background=random' }}" class="rounded-circle" width="34" height="34" alt="user">
                 <div>
                     <div class="fw-semibold" style="font-size: 0.88rem;">{{ $user->display_name ?? $user->username }}</div>
-                    <small class="text-muted">@{{ $user->username }}</small>
+                    <small class="text-muted">{{ $user->username }}</small>
                 </div>
             </a>
             <button type="button" class="btn btn-outline-primary btn-sm rounded-pill follow-btn" data-user-id="{{ $user->id }}">Theo dõi</button>
@@ -217,7 +217,7 @@
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 
         if (imageInput && imagePreviewContainer) {
-            imageInput.addEventListener('change', function () {
+            imageInput.addEventListener('change', function() {
                 imagePreviewContainer.innerHTML = '';
 
                 Array.from(this.files).forEach((file) => {
@@ -296,7 +296,9 @@
 
                 const collapseEl = shareForm.closest('.collapse');
                 if (collapseEl && window.bootstrap) {
-                    const instance = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+                    const instance = bootstrap.Collapse.getOrCreateInstance(collapseEl, {
+                        toggle: false
+                    });
                     instance.hide();
                 }
 
@@ -337,6 +339,33 @@
                     icon.classList.toggle('text-secondary', !added);
                 } catch (error) {
                     // ignore
+                }
+                return;
+            }
+
+            const followBtn = event.target.closest('.follow-btn');
+            if (followBtn) {
+                const userId = followBtn.getAttribute('data-user-id');
+                try {
+                    const response = await fetch(`/users/${userId}/follow`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+                    if (data.status) {
+                        followBtn.textContent = data.status === 'followed' ? 'Đang theo dõi' : 'Theo dõi';
+                        followBtn.classList.toggle('btn-outline-primary', data.status === 'unfollowed');
+                        followBtn.classList.toggle('btn-primary', data.status === 'followed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
                 }
                 return;
             }

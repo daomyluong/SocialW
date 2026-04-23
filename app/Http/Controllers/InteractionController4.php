@@ -39,9 +39,9 @@ class InteractionController4 extends Controller
             $post->increment('like_count');
             $liked = true;
 
-            if ((int) $post->author_user_id !== (int) $userId) {
+            if ((int) $post->user_id !== (int) $userId) {
                 Notification::create([
-                    'user_id' => $post->author_user_id,
+                    'user_id' => $post->user_id,
                     'sender_id' => $userId,
                     'post_id' => $post->id,
                     'type' => 'like',
@@ -83,9 +83,9 @@ class InteractionController4 extends Controller
 
         $post->increment('comment_count');
 
-        if ((int) $post->author_user_id !== (int) $userId) {
+        if ((int) $post->user_id !== (int) $userId) {
             Notification::create([
-                'user_id' => $post->author_user_id,
+                'user_id' => $post->user_id,
                 'sender_id' => $userId,
                 'post_id' => $post->id,
                 'comment_id' => $comment->id,
@@ -154,7 +154,7 @@ class InteractionController4 extends Controller
 
         DB::transaction(function () use ($userId, $post, $sharedComment, $originalAuthorName): void {
             $sharedPost = new Post();
-            $sharedPost->author_user_id = $userId;
+            $sharedPost->user_id = $userId;
             $sharedPost->content = trim(
                 ($sharedComment !== '' ? $sharedComment . PHP_EOL . PHP_EOL : '') .
                 'Đã chia sẻ bài viết của ' . $originalAuthorName . ':' . PHP_EOL . PHP_EOL .
@@ -178,9 +178,9 @@ class InteractionController4 extends Controller
 
             $post->increment('share_count');
 
-            if ((int) $post->author_user_id !== (int) $userId) {
+            if ((int) $post->user_id !== (int) $userId) {
                 Notification::create([
-                    'user_id' => $post->author_user_id,
+                    'user_id' => $post->user_id,
                     'sender_id' => $userId,
                     'post_id' => $post->id,
                     'type' => 'share',
