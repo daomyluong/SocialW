@@ -21,8 +21,8 @@ class MessageController extends Controller
         $followingUsers = $this->followingUsers($viewer);
         $suggestedUsers = $this->suggestedUsers($viewer, $followingUsers);
         $groupConversations = $this->groupConversations($viewer);
-        $activeConversation = null;
         $recentPrivateConversations = $this->recentPrivateConversations($viewer);
+        $activeConversation = $recentPrivateConversations->isNotEmpty() ? $recentPrivateConversations->first()['conversation'] : null;
 
         return $this->renderPage($viewer, $followingUsers, $suggestedUsers, $groupConversations, $activeConversation, $recentPrivateConversations);
     }

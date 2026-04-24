@@ -72,7 +72,7 @@ return new class extends Migration
         // 3. Bảng posts
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('author_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->text('content')->nullable();
             $table->foreignId('media_id')->nullable()->constrained('media');
             $table->integer('like_count')->default(0);

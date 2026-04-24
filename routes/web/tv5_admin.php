@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 // Route tạm thời để test giao diện (Không cần middleware nếu muốn test nhanh)
 Route::get('/admin_test', [AdminController5::class, 'testLayout']);
 
-Route::prefix('admin')->middleware(['auth', 'can:access-admin'])->group(function () {
+Route::prefix('admin')->middleware(['auth'])->group(function () {
    
     // 1. TRANG DASHBOARD
     Route::get('/dashboard', [AdminController5::class, 'dashboard'])->name('admin.dashboard');

@@ -50,10 +50,3 @@
     @endif
 </div>
 @endsection
-
-@section('suggestions')
-<div class="card border-0 shadow-sm p-3">
-    <h6 class="fw-bold mb-3">Có thể bạn quan tâm</h6>
-    <p class="text-muted small">Tính năng gợi ý đang được phát triển.</p>
-</div>
-@endsection

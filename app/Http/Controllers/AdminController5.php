@@ -334,7 +334,7 @@ class AdminController5 extends Controller
             ->join('users', $postUserColumn, '=', 'users.id')
             ->select(
                 'posts.*',
-                DB::raw($postUserColumn . ' as author_user_id'),
+                DB::raw($postUserColumn . ' as user_id'),
                 'users.display_name as author_name',
                 'users.email as author_email',
                 'users.created_at as author_created_at',
@@ -491,7 +491,7 @@ class AdminController5 extends Controller
                 'users.is_active as user_status',
                 'users.created_at as author_created_at',
                 'posts.content as post_content',
-                DB::raw($postUserColumn . ' as post_author_user_id'),
+                DB::raw($postUserColumn . ' as post_user_id'),
                 'comments.user_id as commenter_user_id'
             );
 
@@ -671,7 +671,7 @@ class AdminController5 extends Controller
                 }
 
 
-                $report->author_id = $post ? ($post->author_user_id ?? null) : null;
+                $report->author_id = $post ? ($post->user_id ?? null) : null;
                 $report->deep_link = url('/post/' . $report->reported_entity_id); // Nhảy cóc đến bài viết
             } elseif ($report->reported_entity_type == 'user') {
                 $user = DB::table('users')->where('id', $report->reported_entity_id)->first();
@@ -687,7 +687,7 @@ class AdminController5 extends Controller
                 $report->thumbnail = null;
                 $report->author_id = null;
                 if ($comment) {
-                    $report->author_id = $comment->user_id ?? $comment->author_user_id ?? null;
+                    $report->author_id = $comment->user_id ?? $comment->user_id ?? null;
                 }
                 $report->deep_link = $comment
                     ? url('/post/' . $comment->post_id . '?focus_comment=' . $report->reported_entity_id . '#comment-' . $report->reported_entity_id)
@@ -715,7 +715,7 @@ class AdminController5 extends Controller
     {
         $post = DB::table('posts')
             ->join('users', $this->postUserColumn(), '=', 'users.id')
-            ->select('posts.*', DB::raw($this->postUserColumn() . ' as author_user_id'), 'users.display_name as author_name', 'users.username as author_username')
+            ->select('posts.*', DB::raw($this->postUserColumn() . ' as user_id'), 'users.display_name as author_name', 'users.username as author_username')
             ->where('posts.id', $id)
             ->where('posts.is_deleted', 0)
             ->first();

@@ -411,7 +411,7 @@
                                 <img src="https://ui-avatars.com/api/?name={{ urlencode($post->author_name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-2" width="36" height="36">
                                 <div>
                                     <div class="fw-semibold text-dark">{{ $post->author_name }}</div>
-                                    <small class="text-muted">USER #{{ $post->author_user_id }}</small>
+                                    <small class="text-muted">USER #{{ $post->user_id }}</small>
                                 </div>
                             </div>
                         </td>
@@ -533,7 +533,7 @@
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode($post->author_name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
                                         <div>
                                             <div class="fw-semibold text-dark">{{ $post->author_name }}</div>
-                                            <small class="text-muted">USER #{{ $post->author_user_id }}</small>
+                                            <small class="text-muted">USER #{{ $post->user_id }}</small>
                                         </div>
                                     </div>
                                     <div class="small text-muted">Tham gia: {{ \Carbon\Carbon::parse($post->author_created_at)->diffForHumans() }}</div>
@@ -577,7 +577,7 @@
 
 
                     <div class="d-flex gap-2 flex-wrap justify-content-end">
-                        <form action="{{ route('admin.users.toggle_status', $post->author_user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái tài khoản người đăng?');">
+                        <form action="{{ route('admin.users.toggle_status', $post->user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái tài khoản người đăng?');">
                             @csrf
                             <button type="submit" class="btn btn-action-soft"><i class="fa-solid {{ (int) ($post->author_status ?? 1) === 1 ? 'fa-user-lock' : 'fa-user-check' }} me-1"></i> {{ (int) ($post->author_status ?? 1) === 1 ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}</button>
                         </form>

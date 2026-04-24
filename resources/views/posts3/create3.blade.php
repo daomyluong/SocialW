@@ -46,6 +46,8 @@
                         
                         {{-- Khung chứa ảnh xem trước --}}
                         <div id="imagePreview" class="d-flex flex-wrap gap-3 mt-3"></div>
+                        <video id="previewVideo" controls 
+       style="display:none; max-width:300px; margin-top:10px;"></video>
 
                         <div class="mt-2 small text-muted">
                             <i class="fa-solid fa-circle-info me-1"></i> Định dạng hỗ trợ: JPG, PNG (Tối đa 2MB)
@@ -217,8 +219,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (postVideo) {
         postVideo.addEventListener('change', function() {
-            // Video không có preview riêng ở form này; chỉ giữ lại lựa chọn file.
+
         });
+    }
+});
+document.getElementById('postVideo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+
+    if (file) {
+        const url = URL.createObjectURL(file);
+        const video = document.getElementById('previewVideo');
+        video.src = url;
+        video.style.display = 'block';
     }
 });
 </script>

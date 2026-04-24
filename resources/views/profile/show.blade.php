@@ -14,12 +14,19 @@
         padding: 20px;
     }
 
-    .avatar-img {
-        width: 84px;
-        height: 84px;
+    .avatar-wrapper {
+        width: 90px;
+        height: 90px;
         border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid #eee;
+        flex-shrink: 0;
+    }
+
+    .avatar-wrapper img {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
-        border: 1px solid #efefef;
     }
 
     .btn-outline-custom {
@@ -89,9 +96,11 @@
                 </div>
             </div>
         </div>
-        <div>
-            <img src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name=' . urlencode($user->display_name) . '&background=ebebeb&color=000' }}"
-                class="avatar-img" alt="Avatar">
+        <div class="avatar-wrapper">
+            <img src="{{ $user->avatar_url 
+        ? asset($user->avatar_url) 
+        : 'https://ui-avatars.com/api/?name=' . urlencode($user->display_name) }}"
+                alt="Avatar">
         </div>
     </div>
 
@@ -101,15 +110,23 @@
 
     <div class="d-flex gap-2 mt-4">
         @auth
-        @if(!$isOwnProfile)
+
+        @if($isOwnProfile)
+        <a href="{{ route('profile.edit') }}"
+            class="btn btn-outline-dark btn-sm fw-semibold">
+            Chỉnh sửa trang cá nhân
+        </a>
+        @else
         <button type="button"
             class="btn btn-sm follow-btn {{ $isFollowing ? 'btn-primary' : 'btn-outline-primary' }}"
             data-user-id="{{ $user->id }}">
-            <span class="follow-text">{{ $isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
+            <span class="follow-text">
+                {{ $isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
+            </span>
         </button>
         @endif
-        @endauth
 
+        @endauth
     </div>
 
     <div class="nav-tabs-threads" id="profileTabs">
@@ -119,22 +136,88 @@
     </div>
 
     <div class="mt-4">
-    @forelse($posts as $post)
-        <div class="card mb-3 shadow-sm border-0">
-            <div class="card-body">
-                <p>{{ $post->content }}</p>
-                
-                @foreach($post->media as $mediaItem)
-                    <div class="mb-2">
-                        <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid rounded" alt="media">
+        @forelse($posts as $post)
+
+@php
+$isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
+$isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
+@endphp
+
+<div class="card post-card mb-3" id="post-{{ $post->id }}">
+    <div class="card-body">
+
+        {{-- HEADER --}}
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <img src="{{ $post->author?->avatar_url ? asset($post->author->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($post->author?->display_name) }}"
+                    class="rounded-circle" width="42" height="42">
+
+                <div>
+                    <div class="fw-bold">
+                        {{ $post->author?->display_name }}
                     </div>
-                @endforeach
+                    <small class="text-muted">
+                        {{ optional($post->created_at)->diffForHumans() }}
+                    </small>
+                </div>
             </div>
         </div>
-    @empty
-        <div class="text-muted text-center p-4">Người dùng này chưa có bài viết nào.</div>
-    @endforelse
+
+        {{-- CONTENT --}}
+        <p>{{ $post->content }}</p>
+
+        {{-- MEDIA --}}
+        @if($post->media->count() > 0)
+            @foreach($post->media as $mediaItem)
+
+                @if($mediaItem->type === 'video')
+                    <video controls class="w-100 mb-2">
+                        <source src="{{ asset('storage/' . $mediaItem->url) }}">
+                    </video>
+                @else
+                    <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid rounded mb-2">
+                @endif
+
+            @endforeach
+        @endif
+
+        {{-- ACTION: LIKE COMMENT SHARE --}}
+        <div class="d-flex gap-3 mt-2">
+
+            {{-- LIKE --}}
+            <form action="{{ route('posts.like', $post->id) }}" method="POST">
+                @csrf
+                <button type="submit" class="btn p-0">
+                    <i class="fa-{{ $isLiked ? 'solid text-danger' : 'regular' }} fa-heart"></i>
+                    {{ $post->like_count ?? 0 }}
+                </button>
+            </form>
+
+            {{-- COMMENT --}}
+            <a href="{{ route('posts3.show', $post->id) }}" class="btn p-0">
+                <i class="fa-regular fa-comment"></i>
+                {{ $post->comments_count ?? 0 }}
+            </a>
+
+            {{-- SHARE --}}
+            <form action="{{ route('posts.share', $post->id) }}" method="POST">
+                @csrf
+                <button type="submit" class="btn p-0">
+                    <i class="fa-regular fa-share-from-square"></i>
+                </button>
+            </form>
+
+        </div>
+
+    </div>
 </div>
+
+@empty
+<div class="text-muted text-center p-4">
+    Người dùng này chưa có bài viết nào.
+</div>
+@endforelse
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -170,6 +253,64 @@
                     }
                 });
             }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // LIKE
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const postId = this.dataset.postId;
+
+                    const res = await fetch(`/posts/${postId}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    });
+
+                    const data = await res.json();
+
+                    this.classList.toggle('text-danger', data.liked);
+                    this.querySelector('.like-count').textContent = data.count;
+                });
+            });
+
+            // TOGGLE COMMENT
+            document.querySelectorAll('.comment-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.postId;
+                    const box = document.getElementById(`comment-box-${id}`);
+                    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+
+            // SEND COMMENT
+            document.querySelectorAll('.send-comment').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const postId = this.dataset.postId;
+                    const input = this.previousElementSibling;
+                    const content = input.value;
+
+                    if (!content.trim()) return;
+
+                    const res = await fetch(`/comments/store`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            post_id: postId,
+                            content: content
+                        })
+                    });
+
+                    if (res.ok) {
+                        location.reload();
+                    }
+                });
+            });
+
         });
     </script>
 </div>

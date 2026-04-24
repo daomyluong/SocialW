@@ -16,6 +16,3 @@
     </div>
 @endsection
 
-@section('suggestions')
-    <p class="px-2 text-muted small">TV2: thêm avatar upload, đổi mật khẩu, xác minh email.</p>
-@endsection

@@ -6,6 +6,7 @@ use App\Models\Post;
 use App\Models\User;
 use App\Policies\PostPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,13 +25,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::policy(Post::class, PostPolicy::class);
-        Gate::policy(User::class, UserPolicy::class);
+        \Illuminate\Support\Facades\View::composer('partials.suggestions', function ($view) {
+            if (Auth::check()) {
+                $suggestedUsers = \App\Models\User::where('id', '!=', Auth::id())
+                    ->inRandomOrder()
+                    ->limit(5)
+                    ->get();
 
-        Gate::define('access-admin', function ($user) {
-    return true; 
-    
-});
+                $view->with('suggestedUsers', $suggestedUsers);
+            }
+        });
     }
+
     public const HOME = '/';
 }

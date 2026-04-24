@@ -2,8 +2,9 @@
 
 @section('content')
 <style>
-    .feed-shell {
-        max-width: 720px;
+    .container-fluid {
+        padding-right: 15px;
+        padding-left: 15px;
     }
 
     .feed-hero {
@@ -79,7 +80,7 @@
             </div>
         </form>
         <hr>
-        <form action="{{ route('stories3.store') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
+        <form action="{{ route('stories.store') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
             @csrf
             <input type="file" name="media" class="form-control form-control-sm" accept="image/*,video/*" required>
             <button type="submit" class="btn btn-warning btn-sm rounded-pill">Đăng story</button>
@@ -105,106 +106,53 @@
     </div>
     @endif
 
+    @php
+    $stories = \App\Models\Story3::latest()->get();
+@endphp
+
+<div class="mb-4">
+    <h5>Story</h5>
+
+    <div class="d-flex gap-2">
+        @foreach($stories as $story)
+            @if($story->type == 'image')
+                <img src="{{ asset($story->media_url) }}" width="100" style="border-radius:10px;">
+            @else
+                <video width="100" controls>
+                    <source src="{{ asset($story->media_url) }}">
+                </video>
+            @endif
+        @endforeach
+    </div>
+</div>
+
     <h5 class="fw-bold mb-3">Bảng tin</h5>
 
-    @forelse($posts as $post)
-    @php
-    $isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
-    $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
-    $formattedContent = preg_replace('/@([a-zA-Z0-9_\.]+)/', '<span class="text-primary fw-semibold">@$1</span>', e($post->content ?? ''));
-    @endphp
-    <div class="card post-card mb-3" id="post-{{ $post->id }}">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div class="d-flex align-items-center gap-2">
-                    <img src="{{ $post->author?->avatar_url ? asset($post->author->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($post->author?->display_name ?? $post->author?->username ?? ('User '.$post->author_user_id)).'&background=random' }}" class="rounded-circle" width="42" height="42" alt="avatar">
-                    <div>
-                        <div class="fw-bold">{{ $post->author?->display_name ?? $post->author?->username ?? ('User #'.$post->author_user_id) }}</div>
-                        <small class="text-muted">{{ optional($post->created_at)->diffForHumans() }}</small>
-                    </div>
-                </div>
-                @auth
-                <button type="button" class="btn btn-sm bookmark-btn" data-post-id="{{ $post->id }}" title="Lưu bài viết">
-                    <i class="fa-{{ $isBookmarked ? 'solid' : 'regular' }} fa-bookmark {{ $isBookmarked ? 'text-primary' : 'text-secondary' }}"></i>
-                </button>
-                @endauth
-            </div>
-
-            <p class="mb-2">{!! $formattedContent !!}</p>
-
-            @if($post->media->count() > 0)
-            <div class="d-grid gap-2 mb-3">
-                @foreach($post->media as $mediaItem)
-                @if(($mediaItem->type ?? '') === 'video')
-                <div class="rounded-3 overflow-hidden border">
-                    <video controls class="w-100" style="max-height: 460px; background: #000;">
-                        <source src="{{ asset('storage/' . $mediaItem->url) }}" type="{{ $mediaItem->mime ?? 'video/mp4' }}">
-                    </video>
-                </div>
-                @else
-                <div class="rounded-3 overflow-hidden border">
-                    <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid w-100" alt="media">
-                </div>
-                @endif
-                @endforeach
-            </div>
-            @endif
-
-            <div class="post-toolbar d-flex flex-wrap gap-3 align-items-center mb-2">
-                <form action="{{ route('posts.like', $post->id) }}" method="POST" class="m-0 ajax-like-form">
-                    @csrf
-                    <button type="submit">
-                        <i class="like-icon fa-{{ $isLiked ? 'solid text-danger' : 'regular' }} fa-heart me-1"></i>
-                        <span class="like-count">{{ $post->like_count ?? 0 }}</span>
-                    </button>
-                </form>
-                <a href="{{ route('posts3.show', $post->id) }}" class="btn p-0 text-decoration-none text-dark">
-                    <i class="fa-regular fa-comment me-1"></i><span class="comment-count">{{ $post->comment_count ?? 0 }}</span>
-                </a>
-                <button class="btn p-0" type="button" data-bs-toggle="collapse" data-bs-target="#shareArea{{ $post->id }}">
-                    <i class="fa-regular fa-share-from-square me-1"></i><span class="share-count">{{ $post->share_count ?? 0 }}</span>
-                </button>
-            </div>
-
-            <div class="collapse" id="shareArea{{ $post->id }}">
-                @auth
-                <form action="{{ route('posts.share', $post->id) }}" method="POST" class="mt-2 d-flex gap-2 ajax-share-form">
-                    @csrf
-                    <input type="text" name="comment" class="form-control form-control-sm" placeholder="Lời nhắn khi chia sẻ (tuỳ chọn)">
-                    <button type="submit" class="btn btn-success btn-sm">Chia sẻ</button>
-                </form>
-                @endauth
-            </div>
-        </div>
+    <div id="feed-container">
+        @forelse($posts as $post)
+    @include('components.post-card', ['post' => $post])
+@empty
+    <div class="alert alert-light border">Chưa có bài viết nào.</div>
+@endforelse
     </div>
-    @empty
-    <div class="alert alert-light border">Chưa có bài viết nào trên bảng tin.</div>
-    @endforelse
-</div>
-@endsection
 
-@section('suggestions')
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body">
-        <div class="fw-bold mb-3">Gợi ý theo dõi</div>
-        @auth
-        @forelse($suggestedUsers as $user)
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <a href="{{ route('profile.show', $user->id) }}" class="text-decoration-none text-dark d-flex align-items-center gap-2">
-                <img src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($user->display_name ?? $user->username).'&background=random' }}" class="rounded-circle" width="34" height="34" alt="user">
-                <div>
-                    <div class="fw-semibold" style="font-size: 0.88rem;">{{ $user->display_name ?? $user->username }}</div>
-                    <small class="text-muted">{{ $user->username }}</small>
+    <div class="modal fade" id="saveToFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Lưu bài viết vào thư mục</h5>
                 </div>
-            </a>
-            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill follow-btn" data-user-id="{{ $user->id }}">Theo dõi</button>
+                <div class="modal-body">
+                    <select id="folderSelect" class="form-select mb-3">
+                        <option value="Tất cả">Tất cả</option>
+                    </select>
+                    <input type="text" id="newFolderName" class="form-control" placeholder="Hoặc nhập tên thư mục mới...">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="submitBookmark()">Xác nhận lưu</button>
+                </div>
+            </div>
         </div>
-        @empty
-        <p class="text-muted small mb-0">Hiện không có gợi ý mới.</p>
-        @endforelse
-        @else
-        <p class="text-muted small mb-0">Đăng nhập để xem gợi ý theo dõi.</p>
-        @endauth
     </div>
 </div>
 @endsection
@@ -258,11 +206,14 @@
                 body: new FormData(form),
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                     'Accept': 'application/json',
                 },
             });
 
             if (!response.ok) {
+                console.error('API Error:', response.status, await response.text());
+                alert('Có lỗi: ' + response.status);
                 return;
             }
 
@@ -404,5 +355,39 @@
             }
         });
     })();
+    let currentPostId = null;
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.bookmark-btn');
+        if (btn) {
+            currentPostId = btn.dataset.postId;
+            const res = await fetch('{{ route("bookmarks.folders") }}');
+            const folders = await res.json();
+            const select = document.getElementById('folderSelect');
+            select.innerHTML = '<option value="Tất cả">Tất cả</option>';
+            folders.forEach(f => {
+                if (f !== 'Tất cả') select.innerHTML += `<option value="${f}">${f}</option>`;
+            });
+            new bootstrap.Modal(document.getElementById('saveToFolderModal')).show();
+        }
+    });
+
+    async function submitBookmark() {
+        const newFolder = document.getElementById('newFolderName').value;
+        const selectedFolder = document.getElementById('folderSelect').value;
+        const folderName = newFolder || selectedFolder;
+
+        const res = await fetch(`/bookmarks/toggle/${currentPostId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                folder_name: folderName
+            })
+        });
+        if (res.ok) location.reload();
+    }
 </script>
+
 @endsection

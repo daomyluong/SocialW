@@ -33,7 +33,7 @@ class ProfileController extends Controller
 
         $postAuthorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
             ? 'user_id'
-            : 'author_user_id';
+            : 'user_id';
 
         $postCount = Schema::hasTable('posts')
             ? DB::table('posts')
@@ -52,12 +52,54 @@ class ProfileController extends Controller
                 ->where('following_user_id', $user->id)
                 ->exists();
         }
-        $posts = \App\Models\Post::with('media')
-                         ->where('author_user_id', $user->id) 
-                         ->where('is_deleted', false)
-                         ->latest()
-                         ->get();
-        return view('profile.show', compact('user', 'isOwnProfile', 'postCount', 'followingCount', 'followerCount', 'isFollowing', 'posts'));
+        $currentUserId = Auth::id();
+
+        // Lấy bài viết giống feed
+        $posts = \App\Models\Post::query()
+            ->where('user_id', $user->id)
+            ->where('is_deleted', 0)
+            ->with([
+                'author:id,username,display_name,avatar_url',
+                'media',
+                'comments' => function ($query) {
+                    $query->with('user:id,username,display_name,avatar_url')
+                        ->latest()
+                        ->take(5);
+                },
+            ])
+            ->withCount('comments')
+            ->latest()
+            ->get();
+
+
+        // LIKE
+        $likedPostIds = [];
+        $bookmarkedPostIds = [];
+
+        if ($currentUserId) {
+            $likedPostIds = DB::table('post_likes')
+                ->where('user_id', $currentUserId)
+                ->pluck('post_id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+
+            $bookmarkedPostIds = DB::table('bookmarks3')
+                ->where('user_id', $currentUserId)
+                ->pluck('post_id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+        }
+        return view('profile.show', compact(
+            'user',
+            'isOwnProfile',
+            'postCount',
+            'followingCount',
+            'followerCount',
+            'isFollowing',
+            'posts',
+            'likedPostIds',
+            'bookmarkedPostIds'
+        ));
     }
 
     public function edit(): View|RedirectResponse
@@ -95,19 +137,27 @@ class ProfileController extends Controller
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
+        if ($request->has('remove_avatar')) {
+            if ($user->avatar_url && file_exists(public_path($user->avatar_url))) {
+                unlink(public_path($user->avatar_url));
+            }
+
+            $user->avatar_url = null;
+        }
+
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $fileName = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('uploads/avatars'), $fileName);
 
-            if (Schema::hasColumn('users', 'avatar_url')) {
-                $user->avatar_url = 'uploads/avatars/' . $fileName;
-            }
+            $user->avatar_url = 'uploads/avatars/' . $fileName;
         }
 
-        $user->display_name = $request->string('display_name');
-        $user->bio = $request->string('bio')->toString();
+        $user->display_name = $request->input('display_name');
+        $user->bio = $request->input('bio');
         $user->save();
+
+        Auth::setUser($user);
 
         return redirect()->route('profile.show', $user->id)->with('success', 'Cập nhật thành công!');
     }

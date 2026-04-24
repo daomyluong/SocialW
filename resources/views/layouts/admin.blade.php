@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Giữ nguyên biến màu sắc của Leader */
         :root {
             --hlink-blue: #0062ff; 
             --hlink-green: #28a745;
@@ -23,7 +22,6 @@
             background-color: var(--hlink-bg); color: #212529;
         }
 
-        /* Sidebar giữ nguyên cấu trúc nhưng đổi icon và link */
         .sidebar {
             position: fixed; top: 0; left: 0; bottom: 0; width: 250px;
             border-right: 1px solid #e2e8f0; padding: 20px; background: #fff;
@@ -45,7 +43,6 @@
             background: #eef6ff; color: var(--hlink-blue) !important; font-weight: bold;
         }
 
-        /* Top banner giữ nguyên style */
         .top-banner {
             margin-left: 250px; height: 70px; border-bottom: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: space-between;
@@ -53,11 +50,9 @@
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); z-index: 999;
         }
 
-        /* Main content: Bỏ chia cột 8-4, để 100% cho bảng dữ liệu */
         .main-content { margin-left: 250px; height: calc(100vh - 70px); }
         .scrollable-column { height: 100%; overflow-y: auto; overflow-x: hidden; padding: 30px; }
 
-        /* CSS Dùng chung cho toàn bộ trang Admin */
 .card-glass { border-radius: 1.25rem; border: none; background: rgba(255, 255, 255, 0.9); box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05); }
 .table-custom th { border-bottom: none; color: #a4b0be; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; background-color: #f8fafc; padding: 15px 20px;}
 .table-custom td { vertical-align: middle; border-bottom: 1px solid #f1f2f6; padding: 15px 20px; transition: 0.2s;}

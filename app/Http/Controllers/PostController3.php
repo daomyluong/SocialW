@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Story3;
+
 
 class PostController3 extends Controller
 {
@@ -18,7 +20,7 @@ class PostController3 extends Controller
     {
         return Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
             ? 'user_id'
-            : 'author_user_id';
+            : 'user_id';
     }
 
     // Hiển thị trang đăng bài
@@ -33,40 +35,55 @@ class PostController3 extends Controller
 
     // Xử lý lưu bài viết và ảnh
     public function store(Request $request)
-    {
-        // 1. Kiểm tra xem có nhận được dữ liệu không
-        $request->validate([
-            'content' => 'nullable|required_without_all:image,video',
+{
+    $request->validate([
+        'content' => 'nullable|required_without_all:image,video',
+        'image.*' => 'image|mimes:jpg,jpeg,png|max:2048',
+        'video.*' => 'mimes:mp4,avi,mov|max:10240',
+    ]);
+
+    $post = new \App\Models\Post();
+    $post->user_id = Auth::id() ?? 1;
+    $post->content = $request->content;
+    $post->visibility = 'public';
+    $post->is_deleted = 0;
+
+    $post->save(); 
+
+    if ($request->hasFile('image')) {
+        foreach ($request->file('image') as $file) {
+            $path = $file->store('uploads/posts', 'public');
+
+            $media = \App\Models\Media::create([
+            'owner_user_id' => Auth::id(),
+            'type' => 'image',
+            'url' => $path,
+            'filename' => basename($path),
+            'mime' => $file->getClientMimeType(),
         ]);
 
-        // 2. Tạo bài viết mới
-        $post = new \App\Models\Post();
-
-        // Lấy ID người dùng đang đăng nhập. 
-        // Nếu chưa đăng nhập thì gán tạm ID = 1 để test (hoặc dùng auth()->id())
-        $authorColumn = $this->postAuthorColumn();
-        $post->{$authorColumn} = Auth::id() ?? 1;
-
-        $post->content = $request->content;
-        $post->visibility = 'public';
-        $post->is_deleted = 0; // Đảm bảo bài viết mới không bị đánh dấu là đã xóa
-
-        // 3. Thực hiện lưu
-        if ($post->save()) {
-            // Lưu ảnh nếu có
-            if ($request->hasFile('image')) {
-                foreach ($request->file('image') as $file) {
-                    $path = $file->store('uploads/posts', 'public');
-                    $post->media()->create(['url' => 'uploads/posts/' . basename($path)]);
-                }
-            }
-            // Lưu thành công thì nhảy về trang chủ
-            return redirect()->route('home')->with('success', 'Đăng bài thành công!');
+        $post->media()->attach($media->id);
         }
-
-        // Nếu không lưu được thì quay lại kèm lỗi
-        return back()->with('error', 'Không thể lưu bài viết vào cơ sở dữ liệu.');
     }
+
+    if ($request->hasFile('video')) {
+        foreach ($request->file('video') as $file) {
+            $path = $file->store('uploads/posts', 'public');
+
+            $media = \App\Models\Media::create([
+            'owner_user_id' => Auth::id(),
+            'type' => 'video',
+            'url' => $path,
+            'filename' => basename($path),
+            'mime' => $file->getClientMimeType(),
+        ]);
+
+        $post->media()->attach($media->id);
+        }
+    }
+
+    return redirect()->route('home')->with('success', 'Đăng bài thành công!');
+}
 
     public function myPosts()
     {
@@ -89,7 +106,7 @@ class PostController3 extends Controller
 
         return view('posts3.my_posts3', compact('posts'));
     }
-    
+
     public function destroy($id)
     {
         $post = \App\Models\Post::findOrFail($id);
@@ -112,7 +129,10 @@ class PostController3 extends Controller
     public function update(Request $request, $id)
     {
         // 1. Tìm bài viết
-        $post = Post::findOrFail($id);
+        $post = Post::find($id);
+        if (!$post) {
+            return response()->json(['message' => 'Bài viết không tồn tại'], 404);
+        }
 
         $this->authorize('update', $post);
 
@@ -302,6 +322,8 @@ class PostController3 extends Controller
             'comments.user:id,username,display_name,avatar_url',
         ])->findOrFail($id);
 
-        return view('posts3.show3', compact('post'));
+        $stories = \App\Models\Story3::latest()->get();
+
+        return view('posts3.show3', compact('post', 'stories'));
     }
 }

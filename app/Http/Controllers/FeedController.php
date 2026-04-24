@@ -17,7 +17,7 @@ class FeedController extends Controller
         $since = $request->date('since');
         $postAuthorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
             ? 'user_id'
-            : 'author_user_id';
+            : 'user_id';
 
         try {
             $query = Post::query()

@@ -1,18 +1,22 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use App\Models\Story3;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 
-class StoryController3 extends Controller {
-    public function store(Request $request) {
+class StoryController3 extends Controller
+{
+    public function store(Request $request)
+    {
         if (! Auth::check()) {
             return redirect()->route('login');
         }
 
         $request->validate([
-            'media' => 'required|mimes:jpg,jpeg,png,mp4,mov|max:51200',
+            'media' => 'required|file|mimetypes:image/jpeg,image/png,video/mp4,video/quicktime|max:51200',
         ]);
 
         if ($request->hasFile('media')) {
@@ -25,7 +29,7 @@ class StoryController3 extends Controller {
             $file->move(public_path('uploads/stories'), $fileName);
 
             Story3::create([
-                'user_id' => (int) Auth::id(), 
+                'user_id' => (int) Auth::id(),
                 'media_url' => 'uploads/stories/' . $fileName,
                 'type' => $type
             ]);

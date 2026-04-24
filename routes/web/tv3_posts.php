@@ -21,9 +21,10 @@ Route::middleware('auth')->group(function (): void {
     Route::put('/posts/{id}', [PostController3::class, 'update'])->name('posts3.update');
 
     Route::get('/notifications', [PostController3::class, 'notifications'])->name('notifications.index');
-    Route::post('/stories3', [StoryController3::class, 'store'])->name('stories3.store');
+    Route::post('/stories', [StoryController3::class, 'store'])->name('stories.store');
 
     Route::post('/bookmarks/toggle/{postId}', [BookmarkController3::class, 'toggleBookmark'])->name('bookmarks.toggle');
     Route::get('/bookmarks', [BookmarkController3::class, 'index'])->name('bookmarks.index');
     Route::get('/bookmarks/folders', [BookmarkController3::class, 'getFolders'])->name('bookmarks.folders');
+    Route::post('/bookmarks/folder/create', [BookmarkController3::class, 'storeFolder'])->name('bookmarks.folder.create');
 });
