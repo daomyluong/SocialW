@@ -125,13 +125,26 @@ class AdminController5 extends Controller
 
         $admin_users = $query->paginate(10)->appends($request->all());
 
-        foreach ($admin_users as $user) {
+            foreach ($admin_users as $user) {
+            // 1. Đếm lại số bài viết thực tế (chưa bị xóa)
+            $user->post_count = DB::table('posts')
+                ->where('user_id', $user->id)
+                ->where('is_deleted', 0)
+                ->count();
+
+            // 2. Lấy 3 vi phạm gần nhất
             $user->recent_violations = DB::table('reports')
                 ->where('reported_entity_type', 'user')
                 ->where('reported_entity_id', $user->id)
                 ->orderBy('created_at', 'desc')
                 ->limit(3)
                 ->get();
+                
+            // 3. Đếm TỔNG SỐ vi phạm
+            $user->total_violations = DB::table('reports')
+                ->where('reported_entity_type', 'user')
+                ->where('reported_entity_id', $user->id)
+                ->count();
         }
 
         return view('admin.users.index', compact('admin_users'));
@@ -178,23 +191,22 @@ class AdminController5 extends Controller
             'role' => ['required', 'in:admin,user'],
         ]);
 
-
         $baseUsername = Str::slug(Str::before($request->email, '@'), '_');
         $baseUsername = $baseUsername !== '' ? $baseUsername : 'user';
         $username = $baseUsername;
         $counter = 1;
-
 
         while (DB::table('users')->where('username', $username)->exists()) {
             $username = $baseUsername . '_' . $counter;
             $counter++;
         }
 
-
         $newUserId = DB::table('users')->insertGetId([
+            'name' => $request->display_name,
             'display_name' => $request->display_name,
             'email' => $request->email,
-            'password_hash' => Hash::make($request->temp_password),
+            'password' => Hash::make($request->temp_password),      // <--- THÊM DÒNG NÀY ĐỂ FIX LỖI DB
+            'password_hash' => Hash::make($request->temp_password), // Vẫn giữ phòng trường hợp cậu cần
             'username' => $username,
             'role' => $request->role,
             'is_active' => 1,
@@ -206,12 +218,10 @@ class AdminController5 extends Controller
             'updated_at' => now(),
         ]);
 
-
         $this->storeAdminAction(
             'Create User',
             'Tạo tài khoản mới #' . $newUserId . ' (' . $request->email . ') với vai trò ' . $request->role
         );
-
 
         return redirect()->back()->with('status', 'Đã tạo tài khoản mới thành công.');
     }
@@ -327,9 +337,9 @@ class AdminController5 extends Controller
 
     public function managePosts(Request $request)
     {
-        // Join với bảng users để lấy tên tác giả
         $postUserColumn = $this->postUserColumn();
 
+        // Xóa lệnh lọc status != hidden đi để quản lý được cả bài đã ẩn
         $query = DB::table('posts')
             ->join('users', $postUserColumn, '=', 'users.id')
             ->select(
@@ -340,13 +350,9 @@ class AdminController5 extends Controller
                 'users.created_at as author_created_at',
                 'users.is_active as author_status'
             )
-            ->where('posts.is_deleted', 0)
-            ->where(function ($query) {
-                $query->whereNull('status')->orWhere('status', '!=', 'hidden');
-            });
+            ->where('posts.is_deleted', 0);
 
-
-        // 1. Tìm kiếm theo nội dung bài viết hoặc tên tác giả
+        // 1. TÌM KIẾM
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -355,14 +361,23 @@ class AdminController5 extends Controller
             });
         }
 
-
-        // 2. Lọc theo Chế độ hiển thị
+        // 2. LỌC CHẾ ĐỘ HIỂN THỊ (Public / Private)
         if ($request->has('visibility') && $request->visibility != '') {
             $query->where('posts.visibility', $request->visibility);
         }
+        
+        // 3. LỌC TRẠNG THÁI (Mới thêm: Visible / Hidden)
+        if ($request->has('content_status') && $request->content_status != '') {
+            if ($request->content_status === 'visible') {
+                $query->where(function($q) {
+                    $q->whereNull('posts.status')->orWhere('posts.status', 'visible');
+                });
+            } else {
+                $query->where('posts.status', 'hidden');
+            }
+        }
 
-
-        // 3. Sắp xếp (Mới nhất hoặc Hot nhất)
+        // 4. SẮP XẾP
         $sort = $request->get('sort', 'latest');
         if ($sort == 'hot') {
             $query->orderBy('posts.like_count', 'desc');
@@ -370,31 +385,46 @@ class AdminController5 extends Controller
             $query->orderBy('posts.created_at', 'desc');
         }
 
-
         $admin_posts = $query->paginate(10)->appends($request->all());
 
-
+        // CHỖ NÀY PHẢI CÓ FOREACH ĐỂ NÓ DUYỆT TỪNG BÀI VIẾT NÈ
         foreach ($admin_posts as $post) {
+            // Lấy media thông qua bảng trung gian post_media
             $post->media_type = null;
             $post->media_url = null;
-            if (! empty($post->media_id)) {
-                $media = DB::table('media')->where('id', $post->media_id)->first();
-                if ($media) {
-                    $post->media_type = $media->type ?? null;
-                    $post->media_url = $media->url ?? null;
-                }
+            
+            $media = DB::table('media')
+                ->join('post_media', 'media.id', '=', 'post_media.media_id')
+                ->where('post_media.post_id', $post->id)
+                ->select('media.*')
+                ->first(); // Lấy tạm 1 cái ảnh/video đầu tiên để làm hình thu nhỏ (preview)
+            
+            if ($media) {
+                $post->media_type = $media->type ?? 'image';
+                $post->media_url = $media->url ?? null;
             }
 
-
-            $post->previous_violation_count = 0;
-            $post->report_entries = collect();
-            $post->open_report_count = 0;
-        }
-
+            // Lấy danh sách Report giống trang User (Đã join với users để lấy tên người báo cáo)
+            $post->report_entries = DB::table('reports')
+                ->leftJoin('users as reporters', 'reports.author_id', '=', 'reporters.id')
+                ->where('reports.reported_entity_type', 'post')
+                ->where('reports.reported_entity_id', $post->id)
+                ->select(
+                    'reports.*',
+                    'reporters.display_name as reporter_name' // Lấy tên người báo cáo
+                )
+                ->orderBy('reports.created_at', 'desc')
+                ->get();
+            
+            // Đếm report chưa xử lý
+            $post->open_report_count = $post->report_entries->where('status', 'pending')->count();
+            
+            // Đếm TỔNG số report (Để hiện nút Xem tất cả)
+            $post->total_violations = $post->report_entries->count();
+        } // ĐỪNG QUÊN DẤU ĐÓNG NGOẶC NÀY CỦA VÒNG LẶP NHÉ
 
         return view('admin.posts.index', compact('admin_posts'));
     }
-
 
     public function moderatePost(Request $request, $id)
     {
@@ -641,7 +671,7 @@ class AdminController5 extends Controller
 
 
         // Phân trang 20 báo cáo/trang
-            $admin_reports = $query->groupBy('reports.reported_entity_type', 'reports.reported_entity_id', 'reports.reason', 'reports.status')
+            $admin_reports = $query->groupBy('reports.id', 'reports.reported_entity_type', 'reports.reported_entity_id', 'reports.reason', 'reports.status')
                                 ->paginate(20)->appends($request->all());
 
 

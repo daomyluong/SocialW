@@ -425,7 +425,7 @@
                 </thead>
                 <tbody>
                     @forelse($admin_reports as $report)
-                        <tr>
+                        <tr id="report-row-{{ $report->id ?? $report->report_id ?? '' }}">
                             <td class="px-4 text-start">
                                 <div class="d-flex align-items-center">
                                     <div class="media-preview me-3">
@@ -600,5 +600,28 @@
 @endforeach
 @endsection
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const highlightId = urlParams.get('highlight_id');
+        
+        if (highlightId) {
+            const targetRow = document.getElementById('report-row-' + highlightId);
+            
+            if (targetRow) {
+                // 1. Tự động cuộn màn hình tới đúng vị trí hàng đó
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // 2. Nháy nền màu vàng nhạt trong 3 giây
+                targetRow.style.backgroundColor = '#fff3cd';
+                targetRow.style.transition = 'background-color 0.5s ease';
+                
+                setTimeout(() => {
+                    targetRow.style.backgroundColor = 'transparent';
+                }, 3000);
+            }
+        }
+    });
+</script>
 
 

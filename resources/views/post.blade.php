@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Bài viết #' . $post->id)
 
@@ -131,9 +131,6 @@
                     </div>
                 </div>
             </div>
-        @empty
-            <div class="text-center py-5 text-muted">Chưa có bài viết nào trên bảng tin.</div>
-        @endforelse
     </div>
 </div>
 @endsection

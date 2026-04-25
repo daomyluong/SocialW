@@ -455,7 +455,7 @@
 
 
                         <td class="text-center px-4">
-                            <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Khóa tạm thời tài khoản #{{ $user->id }}?');">
+                            <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn {{ (int)($user->is_active ?? 1) === 1 ? 'Khoá' : 'Mở khóa' }} tài khoản #{{ $user->id }} không?');">
                                 @csrf
                                 <button type="submit" class="btn btn-grad-soft rounded-pill px-3" title="{{ (int) ($user->is_active ?? 1) === 1 ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}" {{ $isSelf ? 'disabled' : '' }}>
                                     <i class="fa-solid {{ (int) ($user->is_active ?? 1) === 1 ? 'fa-lock' : 'fa-lock-open' }}"></i>
@@ -542,23 +542,37 @@
 
                         <div class="col-md-5 ps-md-3">
                             <div class="modal-panel-soft p-4" style="max-height: 100%; min-height: 420px; overflow-y: auto;">
-                            <h6 class="fw-bold text-muted mb-3">VI PHẠM GẦN ĐÂY</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold text-muted mb-0">
+                                    VI PHẠM GẦN ĐÂY 
+                                    <span class="badge bg-danger ms-1 rounded-pill">{{ $user->total_violations ?? 0 }}</span>
+                                </h6>
+                                @if(($user->total_violations ?? 0) > 0)
+                                    {{-- Giả sử route quản lý báo cáo của cậu là admin.reports.index, nhớ truyền ID user qua URL --}}
+                                        <a href="{{ route('admin.reports.index', ['user_id' => $user->id]) }}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px; font-size: 0.75rem;">
+                                        Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
+                                    </a>
+                                @endif
+                            </div>
                             @forelse($user->recent_violations as $violation)
-                                <div class="violation-card mb-3">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <span class="fw-bold" style="font-size: 0.85rem;">{{ $violation->reason }}</span>
-                                        <small class="text-muted ms-auto" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($violation->created_at)->diffForHumans() }}</small>
+                                {{-- Bọc thẻ a để bấm vào bay sang trang report, nhảy tới đúng ID đó --}}
+                                <a href="{{ route('admin.reports.index') }}?highlight_id={{ $violation->id }}#report-row-{{ $violation->id }}" class="text-decoration-none text-dark d-block">
+                                    <div class="violation-card mb-3" style="transition: 0.2s;">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="fw-bold" style="font-size: 0.85rem;">{{ $violation->reason }}</span>
+                                            <small class="text-muted ms-auto" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($violation->created_at)->diffForHumans() }}</small>
+                                        </div>
+                                        <div>
+                                            @if($violation->status === 'pending')
+                                                <span class="badge badge-locked rounded-pill">Chờ xử lý</span>
+                                            @elseif($violation->status === 'resolved')
+                                                <span class="badge badge-active rounded-pill">Đã xử lý</span>
+                                            @else
+                                                <span class="badge badge-user rounded-pill">Đã bác bỏ</span>
+                                            @endif
+                                        </div>
                                     </div>
-                                    <div>
-                                        @if($violation->status === 'pending')
-                                            <span class="badge badge-locked rounded-pill">Chờ xử lý</span>
-                                        @elseif($violation->status === 'resolved')
-                                            <span class="badge badge-active rounded-pill">Đã xử lý</span>
-                                        @else
-                                            <span class="badge badge-user rounded-pill">Đã bác bỏ</span>
-                                        @endif
-                                    </div>
-                                </div>
+                                </a>
                             @empty
                                 <div class="text-muted">Chưa có hành vi vi phạm nào được ghi nhận.</div>
                             @endforelse
@@ -580,14 +594,15 @@
 
 
                     <div class="d-flex gap-2">
-                        <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline">
+                        {{-- Form Khóa / Mở khóa chuẩn --}}
+                        <form action="{{ route('admin.users.toggle_status', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn {{ (int)($user->is_active ?? 1) === 1 ? 'KHÓA' : 'MỞ KHÓA' }} tài khoản #{{ $user->id }}?');">
                             @csrf
                             <button type="submit" class="btn btn-confirm-grad" {{ $isSelf && (int)($user->is_active ?? 1) === 1 ? 'disabled' : '' }}>
                                 {{ (int)($user->is_active ?? 1) === 1 ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}
                             </button>
                         </form>
 
-
+                        {{-- Form Xóa mềm --}}
                         <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mềm tài khoản này không?');">
                             @csrf
                             <button type="submit" class="btn btn-action-soft">Xóa mềm</button>

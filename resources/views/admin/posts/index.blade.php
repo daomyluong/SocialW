@@ -367,12 +367,19 @@
 
             <div class="col-lg-2 col-md-6">
                 <select name="visibility" class="form-select filter-pill w-100">
-                    <option value="">Chế độ</option>
+                    <option value="">Chế độ đăng</option>
                     <option value="public" {{ request('visibility') == 'public' ? 'selected' : '' }}>Công khai</option>
                     <option value="private" {{ request('visibility') == 'private' ? 'selected' : '' }}>Riêng tư</option>
                 </select>
             </div>
-
+            
+            <div class="col-lg-2 col-md-6">
+                <select name="content_status" class="form-select filter-pill w-100">
+                    <option value="">Trạng thái nội dung</option>
+                    <option value="visible" {{ request('content_status') == 'visible' ? 'selected' : '' }}>Đang hiện</option>
+                    <option value="hidden" {{ request('content_status') == 'hidden' ? 'selected' : '' }}>Bị ẩn</option>
+                </select>
+            </div>
 
             <div class="col-lg-2 col-md-6">
                 <select name="sort" class="form-select filter-pill w-100">
@@ -420,11 +427,11 @@
                         <td class="text-center">
                             <div class="media-preview mx-auto">
                                 @if(($post->media_type ?? null) === 'image' && ($post->media_url ?? null))
-                                    <img src="{{ $post->media_url }}" alt="Preview" class="w-100 h-100" style="object-fit: cover;">
-                                @elseif(($post->media_type ?? null) === 'video')
-                                    <i class="fa-solid fa-circle-play fa-lg"></i>
+                                    <img src="{{ asset('storage/' . $post->media_url) }}" onerror="this.src='{{ asset($post->media_url) }}'" alt="Preview" class="w-100 h-100" style="object-fit: cover;">
+                                @elseif(($post->media_type ?? null) === 'video' && ($post->media_url ?? null))
+                                    <i class="fa-solid fa-circle-play fa-lg" style="color: #ef4444;"></i>
                                 @else
-                                    <i class="fa-solid fa-align-left"></i>
+                                    <i class="fa-solid fa-align-left text-muted"></i>
                                 @endif
                             </div>
                         </td>
@@ -454,10 +461,11 @@
 
 
                         <td class="text-center px-4">
-                            <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái bài viết?');">
+                            <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'HIỆN' : 'ẨN' }} bài viết này?');">
                                 @csrf
-                                <button type="submit" class="btn btn-grad-soft rounded-pill px-3" title="{{ ($post->content_status ?? 'visible') === 'hidden' ? 'Hiện bài viết' : 'Ẩn bài viết' }}">
-                                    <i class="fa-solid {{ ($post->content_status ?? 'visible') === 'hidden' ? 'fa-eye' : 'fa-eye-slash' }}"></i>
+                                <button type="submit" class="btn btn-grad-soft rounded-pill px-3" title="{{ ($post->status ?? 'visible') === 'hidden' ? 'Hiện bài viết' : 'Ẩn bài viết' }}">
+                                    {{-- Nếu đang ẩn (hidden) thì hiện con mắt mở (để bấm vào hiện lên). Nếu đang hiện thì icon mắt gạch chéo --}}
+                                    <i class="fa-solid {{ ($post->status ?? 'visible') === 'hidden' ? 'fa-eye' : 'fa-eye-slash' }}"></i>
                                 </button>
                             </form>
                             <button type="button" class="btn btn-review" data-bs-toggle="modal" data-bs-target="#modalPostReview{{ $post->id }}">
@@ -497,70 +505,76 @@
                         <div class="col-lg-8 pe-lg-3 mb-3 mb-lg-0">
                             <div class="modal-panel-soft p-4 h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                    <h6 class="fw-bold text-muted mb-0">NỘI DUNG GỐC (70%)</h6>
-                                    <span class="badge {{ ($post->visibility ?? 'public') === 'public' ? 'badge-visibility-public' : 'badge-visibility-private' }} rounded-pill px-3 py-2">
-                                        {{ ($post->visibility ?? 'public') === 'public' ? 'Công khai' : 'Riêng tư' }}
-                                    </span>
+                                    <h6 class="fw-bold text-muted mb-0">NỘI DUNG</h6>
+                                    <div>
+                                        <span class="badge {{ ($post->visibility ?? 'public') === 'public' ? 'badge-visibility-public' : 'badge-visibility-private' }} rounded-pill px-3 py-2">
+                                            {{ ($post->visibility ?? 'public') === 'public' ? 'Công khai' : 'Riêng tư' }}
+                                        </span>
+                                        @if(($post->status ?? 'visible') === 'hidden')
+                                            <span class="badge bg-danger rounded-pill px-3 py-2 ms-2"><i class="fa-solid fa-eye-slash me-1"></i> Đang bị ẩn</span>
+                                        @endif
+                                    </div>
                                 </div>
 
 
                                 <div class="review-content-box mb-3">{{ $post->content ?: 'Bài viết không có nội dung chữ.' }}</div>
 
 
-                                <div class="review-media-box">
-                                    @if(($post->media_type ?? null) === 'image' && ($post->media_url ?? null))
-                                        <img src="{{ $post->media_url }}" alt="Ảnh gốc bài viết">
-                                    @elseif(($post->media_type ?? null) === 'video' && ($post->media_url ?? null))
-                                        <video src="{{ $post->media_url }}" controls preload="metadata"></video>
-                                    @else
-                                        <div class="text-center text-white-50 px-4">
-                                            <i class="fa-solid fa-photo-film fa-2x mb-2"></i>
-                                            <div>Bài viết không có media đính kèm.</div>
-                                        </div>
-                                    @endif
-                                </div>
+                    <div class="review-media-box">
+                        @if(($post->media_type ?? null) === 'image' && ($post->media_url ?? null))
+                            <img src="{{ asset('storage/' . $post->media_url) }}" onerror="this.src='{{ asset($post->media_url) }}'" alt="Ảnh gốc bài viết" style="width: 100%; max-height: 520px; object-fit: contain;">
+                        @elseif(($post->media_type ?? null) === 'video' && ($post->media_url ?? null))
+                            <video controls preload="metadata" style="width: 100%; max-height: 520px;">
+                                <source src="{{ asset('storage/' . $post->media_url) }}" onerror="this.src='{{ asset($post->media_url) }}'">
+                                Trình duyệt của bạn không hỗ trợ thẻ video.
+                            </video>
+                        @else
+                            <div class="text-center text-white-50 px-4 py-5">
+                                <i class="fa-solid fa-photo-film fa-3x mb-3"></i>
+                                <div>Bài viết không có phương tiện đính kèm.</div>
+                            </div>
+                        @endif
+                    </div>
                             </div>
                         </div>
 
 
                         <div class="col-lg-4 ps-lg-3">
                             <div class="modal-panel-soft p-4 h-100" style="max-height: 100%; min-height: 520px; overflow-y: auto;">
-                                <h6 class="fw-bold text-muted mb-3">NHÂN THÂN NGƯỜI ĐĂNG (30%)</h6>
+                                <h6 class="fw-bold text-muted mb-3">THÔNG TIN NGƯỜI ĐĂNG</h6>
 
 
                                 <div class="report-item mb-3">
-                                    <div class="d-flex align-items-center mb-2">
+                                    <div class="d-flex align-items-center">
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode($post->author_name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
                                         <div>
                                             <div class="fw-semibold text-dark">{{ $post->author_name }}</div>
                                             <small class="text-muted">USER #{{ $post->user_id }}</small>
                                         </div>
                                     </div>
-                                    <div class="small text-muted">Tham gia: {{ \Carbon\Carbon::parse($post->author_created_at)->diffForHumans() }}</div>
-                                    <div class="small text-muted">Bài vi phạm trước đó: <span class="fw-bold text-dark">{{ $post->previous_violation_count }}</span></div>
-                                    <div class="small text-muted">Báo cáo đang chờ xử lý: <span class="fw-bold text-dark">{{ $post->open_report_count }}</span></div>
                                 </div>
-
 
                                 <h6 class="fw-bold text-muted mb-2">DANH SÁCH BÁO CÁO</h6>
                                 @forelse($post->report_entries as $entry)
-                                    <div class="report-item">
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <span class="fw-semibold" style="font-size: 0.85rem;">{{ $entry->reason }}</span>
-                                            @if($entry->status === 'pending')
-                                                <span class="badge badge-status-intervened rounded-pill">Chờ xử lý</span>
-                                            @elseif($entry->status === 'resolved')
-                                                <span class="badge badge-status-clean rounded-pill">Đã xử lý</span>
-                                            @else
-                                                <span class="badge border rounded-pill" style="border-color: #cbd5e1 !important; color: #64748b;">Đã bác bỏ</span>
+                                    <a href="{{ route('admin.reports.index') }}?highlight_id={{ $entry->id }}#report-row-{{ $entry->id }}" class="text-decoration-none text-dark d-block">
+                                        <div class="report-item mb-2" style="transition: 0.2s;">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <span class="fw-semibold" style="font-size: 0.85rem;">{{ $entry->reason }}</span>
+                                                @if($entry->status === 'pending')
+                                                    <span class="badge badge-status-intervened rounded-pill">Chờ xử lý</span>
+                                                @elseif($entry->status === 'resolved')
+                                                    <span class="badge badge-status-clean rounded-pill">Đã xử lý</span>
+                                                @else
+                                                    <span class="badge border rounded-pill" style="border-color: #cbd5e1 !important; color: #64748b;">Đã bác bỏ</span>
+                                                @endif
+                                            </div>
+                                            <div class="small text-muted">Reporter: {{ $entry->reporter_name ?? 'Khách vãng lai' }}</div>
+                                            @if(!empty($entry->additional_notes))
+                                                <div class="small text-dark mt-1">{{ $entry->additional_notes }}</div>
                                             @endif
+                                            <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($entry->created_at)->diffForHumans() }}</div>
                                         </div>
-                                        <div class="small text-muted">Reporter: {{ $entry->reporter_name }}</div>
-                                        @if(!empty($entry->additional_notes))
-                                            <div class="small text-dark mt-1">{{ $entry->additional_notes }}</div>
-                                        @endif
-                                        <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($entry->created_at)->diffForHumans() }}</div>
-                                    </div>
+                                    </a>
                                 @empty
                                     <div class="text-muted">Hiện chưa có báo cáo nào cho bài viết này.</div>
                                 @endforelse
@@ -583,15 +597,17 @@
                         </form>
 
 
-                        <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái bài viết?');">
+                        <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'HIỆN' : 'ẨN' }} bài viết này?');">
                             @csrf
-                            <button type="submit" class="btn btn-confirm-grad"><i class="fa-solid {{ ($post->content_status ?? 'visible') === 'hidden' ? 'fa-eye' : 'fa-eye-slash' }} me-1"></i> {{ ($post->content_status ?? 'visible') === 'hidden' ? 'Hiện bài' : 'Ẩn bài' }}</button>
+                            <button type="submit" class="btn btn-confirm-grad">
+                                <i class="fa-solid {{ ($post->status ?? 'visible') === 'hidden' ? 'fa-eye' : 'fa-eye-slash' }} me-1"></i> 
+                                {{ ($post->status ?? 'visible') === 'hidden' ? 'Hiện bài' : 'Ẩn bài' }}
+                            </button>
                         </form>
 
 
-                        <form action="{{ route('admin.posts.moderate', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa mềm bài viết này?');">
+                        <form action="{{ route('admin.posts.delete', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có muốn xóa mềm (cho vào thùng rác) bài viết này?');">
                             @csrf
-                            <input type="hidden" name="action" value="delete">
                             <button type="submit" class="btn btn-action-soft">Xóa mềm</button>
                         </form>
                     </div>
