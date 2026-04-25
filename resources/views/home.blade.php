@@ -43,7 +43,7 @@
 <div class="container feed-shell">
     <div id="feedFlashMessage"></div>
 
-    @if(session('success'))
+    @if(session('ccess'))
     <div id="successAlert" class="alert alert-success">
         {{ session('success') }}
     </div>
@@ -107,22 +107,47 @@
     @endif
 
     @php
-    $stories = \App\Models\Story3::latest()->get();
-@endphp
+        $stories = \App\Models\Story3::latest()->get();
+    @endphp
 
 <div class="mb-4">
-    <h5>Story</h5>
-
-    <div class="d-flex gap-2">
-        @foreach($stories as $story)
-            @if($story->type == 'image')
-                <img src="{{ asset($story->media_url) }}" width="100" style="border-radius:10px;">
-            @else
-                <video width="100" controls>
-                    <source src="{{ asset($story->media_url) }}">
-                </video>
-            @endif
+    <h5 class="fw-bold">Story</h5>
+    <div class="d-flex gap-2 overflow-auto pb-2">
+        @foreach($stories as $index => $story)
+            <div class="story-thumbnail" onclick="openStoryViewer({{ $index }})" style="cursor:pointer; min-width:100px;">
+                @if($story->type == 'image')
+                    <img src="{{ asset($story->media_url) }}" width="100" height="150" class="rounded-3" style="object-fit: cover;">
+                @else
+                    <video width="100" height="150" class="rounded-3" style="object-fit: cover;">
+                        <source src="{{ asset($story->media_url) }}">
+                    </video>
+                @endif
+            </div>
         @endforeach
+    </div>
+</div>
+
+<script>
+    const storyList = @json($stories->map(fn($s) => ['url' => asset($s->media_url), 'type' => $s->type]));
+    let currentIdx = 0;
+</script>
+
+<div class="modal fade" id="storyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content bg-dark border-0 position-relative">
+            
+            <button class="btn btn-link text-white position-absolute top-50 start-0 translate-middle-y z-3" onclick="changeStory(-1)">
+                <i class="fa-solid fa-chevron-left fa-2x"></i>
+            </button>
+            <button class="btn btn-link text-white position-absolute top-50 end-0 translate-middle-y z-3" onclick="changeStory(1)">
+                <i class="fa-solid fa-chevron-right fa-2x"></i>
+            </button>
+
+            <div class="modal-body p-0 text-center bg-black rounded-3 overflow-hidden" style="height: 70vh; display: flex; align-items: center;">
+                <img id="viewImg" class="w-100 d-none">
+                <video id="viewVid" controls autoplay muted class="w-100 d-none"></video>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -130,10 +155,10 @@
 
     <div id="feed-container">
         @forelse($posts as $post)
-    @include('components.post-card', ['post' => $post])
-@empty
-    <div class="alert alert-light border">Chưa có bài viết nào.</div>
-@endforelse
+            @include('components.post-card', ['post' => $post])
+        @empty
+            <div class="alert alert-light border">Chưa có bài viết nào.</div>
+        @endforelse
     </div>
 
     <div class="modal fade" id="saveToFolderModal" tabindex="-1">
@@ -156,6 +181,7 @@
     </div>
 </div>
 @endsection
+
 
 @section('scripts')
 <script>
@@ -388,6 +414,55 @@
         });
         if (res.ok) location.reload();
     }
+    let storyModal;
+
+    function openStoryViewer(index) {
+        if (!storyModal) storyModal = new bootstrap.Modal(document.getElementById('storyModal'));
+        currentIdx = index;
+        showContent();
+        storyModal.show();
+    }
+
+    function showContent() {
+        const story = storyList[currentIdx];
+        const img = document.getElementById('viewImg');
+        const vid = document.getElementById('viewVid');
+
+        // Ẩn tất cả trước khi hiện
+        img.classList.add('d-none');
+        vid.classList.add('d-none');
+        vid.pause();
+        vid.src = "";
+
+        if (story.type === 'image') {
+            img.src = story.url;
+            img.classList.remove('d-none');
+        } else {
+            vid.src = story.url;
+            vid.classList.remove('d-none');
+            vid.load(); // Buộc video tải lại nguồn mới
+            vid.play();
+        }
+    }
+
+    function changeStory(step) {
+        let newIdx = currentIdx + step;
+        
+        // Nếu vẫn nằm trong danh sách thì chuyển
+        if (newIdx >= 0 && newIdx < storyList.length) {
+            currentIdx = newIdx;
+            showContent();
+        } else {
+            // Nếu hết danh sách thì đóng modal
+            storyModal.hide();
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (!document.getElementById('storyModal').classList.contains('show')) return;
+        if (e.key === "ArrowLeft") changeStory(-1);
+        if (e.key === "ArrowRight") changeStory(1);
+    });
 </script>
 
 @endsection

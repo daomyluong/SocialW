@@ -33,8 +33,8 @@ public function toggleBookmark(Request $request, $postId)
 
     if ($bookmark) {
         // Nếu đã tồn tại, cập nhật lại thư mục mới
-        $bookmark->update(['folder_name' => $folderName]);
-        return response()->json(['status' => 'updated']);
+        $bookmark->delete();
+        return response()->json(['status' => 'removed']);
     } else {
         // Nếu chưa, tạo mới hoàn toàn
         Bookmark3::create([

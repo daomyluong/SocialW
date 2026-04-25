@@ -106,7 +106,36 @@
         </div>
     </div>
 </div>
-
+<div class="modal fade" id="shareModal{{ $post->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content" style="border-radius: 15px;">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold">Chia sẻ bài viết</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('posts.share', $post->id) }}" method="POST">
+                            @csrf
+                            <div class="modal-body">
+                                <textarea name="comment" class="form-control mb-3" rows="3" placeholder="Viết lời nhắn..."></textarea>
+                                <p class="small text-muted mb-2">Nhắc tên bạn bè:</p>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($allUsers ?? [] as $u)
+                                        <span class="badge rounded-pill bg-light text-dark border p-2" style="cursor:pointer;" onclick="addMention('{{ $u->username }}', {{ $post->id }})">@ {{ $u->username }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <button type="submit" class="btn btn-primary w-100 rounded-pill">Chia sẻ ngay</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-5 text-muted">Chưa có bài viết nào trên bảng tin.</div>
+        @endforelse
+    </div>
+</div>
 @endsection
 
 @section('scripts')
