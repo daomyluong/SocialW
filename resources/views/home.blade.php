@@ -311,9 +311,20 @@
 
                     const data = await response.json();
                     if (data.status) {
-                        followBtn.textContent = data.status === 'followed' ? 'Đang theo dõi' : 'Theo dõi';
-                        followBtn.classList.toggle('btn-outline-primary', data.status === 'unfollowed');
-                        followBtn.classList.toggle('btn-primary', data.status === 'followed');
+                        const followed = data.status === 'followed';
+                        document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach((btn) => {
+                            btn.classList.toggle('btn-primary', followed);
+                            btn.classList.toggle('btn-outline-primary', !followed);
+                            btn.classList.toggle('text-primary', !followed);
+                            btn.classList.toggle('text-secondary', followed);
+
+                            const textNode = btn.querySelector('.follow-text');
+                            if (textNode) {
+                                textNode.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
+                            } else {
+                                btn.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
+                            }
+                        });
                     }
                 } catch (error) {
                     console.error('Error:', error);

@@ -7,8 +7,11 @@ use App\Models\User;
 use App\Policies\PostPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,16 +28,31 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Support\Facades\View::composer('partials.suggestions', function ($view) {
-            if (Auth::check()) {
-                $suggestedUsers = \App\Models\User::where('id', '!=', Auth::id())
-                    ->inRandomOrder()
-                    ->limit(5)
-                    ->get();
-
-                $view->with('suggestedUsers', $suggestedUsers);
+        Schema::defaultStringLength(191);
+        View::composer('partials.suggestions', function ($view) {
+            if (!Auth::check()) {
+                return;
             }
+
+            $currentUserId = (int) Auth::id();
+
+            $suggestedUsers = User::where('id', '!=', $currentUserId)
+                ->inRandomOrder()
+                ->limit(5)
+                ->get();
+
+            $followingIds = DB::table('followers')
+                ->where('follower_user_id', $currentUserId)
+                ->pluck('following_user_id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+
+            $view->with('suggestedUsers', $suggestedUsers);
+            $view->with('followingIds', $followingIds);
         });
+
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Post::class, PostPolicy::class);
     }
 
     public const HOME = '/';

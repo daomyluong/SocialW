@@ -238,8 +238,11 @@ class InteractionController4 extends Controller
             $status = 'followed';
         }
 
-        if ($request->expectsJson()) {
-            return response()->json(['status' => $status]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => $status,
+                'is_following' => $status === 'followed',
+            ]);
         }
 
         return back()->with('success', $status === 'followed' ? 'Đã theo dõi người dùng.' : 'Đã hủy theo dõi người dùng.');

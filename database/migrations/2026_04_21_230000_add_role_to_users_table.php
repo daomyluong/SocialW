@@ -15,13 +15,13 @@ return new class extends Migration
 
         if (! Schema::hasColumn('users', 'role')) {
             Schema::table('users', function (Blueprint $table): void {
-                $table->string('role', 20)->default('member')->after('is_active');
+                $table->string('role', 20)->default('user')->after('is_active');
             });
         }
 
         DB::table('users')
             ->whereNull('role')
-            ->update(['role' => 'member']);
+            ->update(['role' => 'user']);
 
         DB::table('users')
             ->where('id', 1)

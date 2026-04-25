@@ -9,7 +9,7 @@ class PostPolicy
 {
     public function update(User $user, Post $post): bool
     {
-        return (int) $post->user_id === (int) $user->id || (string) ($user->role ?? 'member') === 'admin';
+        return (int) $post->user_id === (int) $user->id || (string) ($user->role ?? 'user') === 'admin';
     }
 
     public function delete(User $user, Post $post): bool
@@ -19,6 +19,6 @@ class PostPolicy
 
     public function moderate(User $user): bool
     {
-        return (string) ($user->role ?? 'member') === 'admin';
+        return (string) ($user->role ?? 'user') === 'admin';
     }
 }

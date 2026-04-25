@@ -179,7 +179,13 @@
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                 <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
                 
-                <li><a class="dropdown-item py-2 text-primary fw-bold" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
+            @if((string) (auth()->user()?->role ?? 'user') === 'admin')
+                <li>
+                    <a class="dropdown-item py-2 text-primary fw-bold" href="{{ route('admin.dashboard') }}">
+                    <i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống
+                    </a>
+                </li>
+            @endif
                 
                 <li>
                     <hr class="dropdown-divider">

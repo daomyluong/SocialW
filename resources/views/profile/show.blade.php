@@ -229,30 +229,52 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
                 });
             });
 
+            document.addEventListener('click', async function(event) {
+                const followBtn = event.target.closest('.follow-btn');
+                if (!followBtn) {
+                    return;
+                }
 
-            const followBtn = document.querySelector('.follow-btn');
-            if (followBtn) {
-                followBtn.addEventListener('click', async function() {
-                    const userId = this.getAttribute('data-user-id');
+                const userId = followBtn.getAttribute('data-user-id');
 
-                    const response = await fetch(`/profile/${userId}/follow`, {
+                try {
+                    const response = await fetch(`/users/${userId}/follow`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        this.classList.toggle('btn-primary', data.is_following);
-                        this.classList.toggle('btn-outline-primary', !data.is_following);
-
-                        this.querySelector('.follow-text').textContent = data.is_following ? 'Đang theo dõi' : 'Theo dõi';
+                    if (!response.ok) {
+                        return;
                     }
-                });
-            }
+
+                    const data = await response.json();
+                    if (!data || !data.status) {
+                        return;
+                    }
+
+                    const followed = data.status === 'followed';
+
+                    document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach((btn) => {
+                        btn.classList.toggle('btn-primary', followed);
+                        btn.classList.toggle('btn-outline-primary', !followed);
+                        btn.classList.toggle('text-primary', !followed);
+                        btn.classList.toggle('text-secondary', followed);
+
+                        const textNode = btn.querySelector('.follow-text');
+                        if (textNode) {
+                            textNode.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
+                        } else {
+                            btn.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
+                        }
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            });
         });
         document.addEventListener('DOMContentLoaded', () => {
 

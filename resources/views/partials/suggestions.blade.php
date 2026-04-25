@@ -9,7 +9,14 @@
                          class="rounded-circle me-2" width="34" height="34">
                     <div class="fw-semibold small text-truncate">{{ $user->display_name ?? $user->username }}</div>
                 </div>
-                <button type="button" class="btn btn-sm btn-link p-0 text-primary fw-bold">Theo dõi</button>
+                @php
+                    $isFollowing = in_array((int) $user->id, $followingIds ?? [], true);
+                @endphp
+                <button type="button"
+                        class="btn btn-sm btn-link p-0 fw-bold follow-btn {{ $isFollowing ? 'text-secondary' : 'text-primary' }}"
+                        data-user-id="{{ $user->id }}">
+                    {{ $isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
+                </button>
             </div>
             @endforeach
         @endif
