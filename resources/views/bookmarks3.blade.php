@@ -2,22 +2,19 @@
 
 @section('content')
 <div class="container" style="max-width: 600px;">
-    {{-- PHẦN XỬ LÝ LOGIC DỮ LIỆU SẠCH --}}
+    {{-- PHẦN XỬ LÝ LOGIC DỮ LIỆU --}}
     @php
-    // 1. Chỉ lấy những bookmark CHƯA bị xóa mềm (is_deleted = 0)
-    // và bài viết gốc phải còn tồn tại (post != null)
-    $activeBookmarks = collect($bookmarks)->filter(function($bm) {
-    return $bm->is_deleted == 0 && $bm->post != null;
-    });
+    // 1. Lấy tất cả bookmark (bao gồm cả bài đã xóa và chưa xóa)
+    $allBookmarks = collect($bookmarks);
 
-    // 2. Lấy danh sách tên folder duy nhất từ những bài chưa xóa
-    $folders = $activeBookmarks->pluck('folder_name')->unique()->filter()->sort();
+    // 2. Lấy danh sách tên folder duy nhất (chỉ bookmark chưa xóa)
+    $folders = $allBookmarks->where('is_deleted', 0)->pluck('folder_name')->unique()->filter()->sort();
 
     // 3. Lọc bài viết theo folder từ URL (?folder=...)
     $selectedFolder = request('folder');
     $displayItems = $selectedFolder
-    ? $activeBookmarks->where('folder_name', $selectedFolder)
-    : $activeBookmarks;
+        ? $allBookmarks->where('folder_name', $selectedFolder)
+        : $allBookmarks;
     @endphp
 
     {{-- Tiêu đề & Tổng số lượng chuẩn --}}
@@ -57,12 +54,23 @@
     {{-- PHẦN 2: DANH SÁCH BÀI VIẾT --}}
     <div class="row g-3" id="bookmark-container">
         @forelse($displayItems as $bm)
+        @php
+            $postDeleted = is_null($bm->post) || ($bm->post->is_deleted ?? 0) == 1;
+        @endphp
         <div class="col-12 bookmark-item" id="bm-item-{{ $bm->post_id }}">
-            <div class="card border-0 shadow-sm mb-2" style="border-radius: 20px;">
+            <div class="card border-0 shadow-sm mb-2" style="border-radius: 20px; {{ $postDeleted ? 'opacity: 0.7; background: #f8f9fa;' : '' }}">
                 <div class="card-body p-4">
                     {{-- Header bài viết --}}
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center">
+                            @if($postDeleted)
+                            <div class="rounded-circle me-2 border bg-secondary" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-user text-white"></i>
+                            </div>
+                            <div class="fw-bold small text-muted">
+                                Người dùng đã xóa
+                            </div>
+                            @else
                             <img src="{{ $bm->post->author?->avatar_url 
     ? asset($bm->post->author->avatar_url) 
     : 'https://ui-avatars.com/api/?name=' . urlencode($bm->post->author?->display_name ?? $bm->post->author?->username ?? 'User') 
@@ -72,19 +80,33 @@
                             <div class="fw-bold small">
                                 {{ $bm->post->author?->display_name ?? $bm->post->author?->username ?? 'User #' . $bm->post->user_id }}
                             </div>
+                            @endif
                         </div>
-                        <span class="badge bg-light text-muted fw-normal border-0">
-                            <i class="fa-regular fa-folder me-1"></i>{{ $bm->folder_name }}
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            @if($postDeleted)
+                            <span class="badge bg-secondary">
+                                <i class="fa-solid fa-trash me-1"></i>Đã xóa
+                            </span>
+                            @endif
+                            <span class="badge bg-light text-muted fw-normal border-0">
+                                <i class="fa-regular fa-folder me-1"></i>{{ $bm->folder_name }}
+                            </span>
+                        </div>
                     </div>
 
                     {{-- Nội dung chữ --}}
+                    @if($postDeleted)
+                    <div class="text-muted fst-italic mb-3" style="font-size: 0.95rem; line-height: 1.6;">
+                        <i class="fa-solid fa-message me-2"></i>Nội dung đã bị xóa
+                    </div>
+                    @else
                     <p class="text-dark mb-3" style="font-size: 0.95rem; line-height: 1.6;">
                         {{ $bm->post->content }}
                     </p>
+                    @endif
 
                     {{-- Media ảnh --}}
-                    @if($bm->post && $bm->post->media && $bm->post->media->isNotEmpty())
+                    @if(!$postDeleted && $bm->post && $bm->post->media && $bm->post->media->isNotEmpty())
                     @foreach($bm->post->media as $media)
                     @if($media->type === 'video')
                     <div class="rounded-4 overflow-hidden border mb-3">
@@ -104,10 +126,13 @@
 
                     {{-- Nút bấm --}}
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-                        {{-- Sửa link trỏ về trang chủ kèm theo ID của bài viết --}}
+                        @if(!$postDeleted)
                         <a href="{{ route('home') }}#post-{{ $bm->post_id }}" class="text-primary text-decoration-none small fw-bold">
                             Xem bài viết gốc <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.7rem;"></i>
                         </a>
+                        @else
+                        <span class="text-muted small">Bài viết đã bị xóa</span>
+                        @endif
                         <button data-post-id="{{ $bm->post_id }}" onclick="handleRemoveBookmark(this.dataset.postId, this)" class="btn btn-link text-danger text-decoration-none p-0 small fw-bold">
                             <i class="fa-solid fa-trash-can me-1"></i> Bỏ lưu
                         </button>
@@ -142,7 +167,8 @@
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    folder_name: 'Tất cả'
+                    folder_name: 'Tất cả',
+                    action: 'remove'
                 })
             })
             .then(res => res.json())

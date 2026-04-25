@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <title>W-Social | @yield('title', 'Mạng xã hội')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 
     <style>
         :root {
@@ -17,12 +19,14 @@
             --threads-gray: #f1f3f5;
         }
 
+
         body,
         html {
             height: 100%;
             background-color: var(--hlink-bg);
             color: #212529;
         }
+
 
         .sidebar {
             position: fixed;
@@ -37,6 +41,7 @@
             overflow-y: auto;
         }
 
+
         .logo h3 {
             background: linear-gradient(45deg, var(--hlink-blue), var(--hlink-green));
             background-clip: text;
@@ -44,6 +49,7 @@
             -webkit-text-fill-color: transparent;
             font-weight: 800;
         }
+
 
         .sidebar .nav-link {
             padding: 12px 15px;
@@ -53,12 +59,14 @@
             color: #4a5568 !important;
         }
 
+
         .sidebar .nav-link:hover,
         .sidebar .active {
             background: #eef6ff;
             color: var(--hlink-blue) !important;
             font-weight: bold;
         }
+
 
         .top-banner {
             margin-left: 250px;
@@ -75,6 +83,7 @@
             z-index: 999;
         }
 
+
         .search-box {
             background: var(--threads-gray);
             border-radius: 25px;
@@ -83,10 +92,12 @@
             width: 350px;
         }
 
+
         .main-content {
             margin-left: 250px;
             height: calc(100vh - 70px);
         }
+
 
         .scrollable-column {
             height: 100%;
@@ -95,22 +106,27 @@
             padding: 20px;
         }
 
+
         .scrollable-column::-webkit-scrollbar {
             width: 5px;
         }
+
 
         .scrollable-column::-webkit-scrollbar-thumb {
             background: #cbd5e0;
             border-radius: 10px;
         }
 
+
         .bg-primary {
             background-color: var(--hlink-blue) !important;
         }
 
+
         .text-primary {
             color: var(--hlink-blue) !important;
         }
+
 
         .btn-follow {
             color: var(--hlink-green);
@@ -119,12 +135,14 @@
             transition: 0.3s;
         }
 
+
         .btn-follow:hover {
             background-color: var(--hlink-green);
             color: #fff;
         }
     </style>
 </head>
+
 
 <body>
     <div class="sidebar">
@@ -148,13 +166,19 @@
                 <i class="fa-regular fa-square-plus me-3"></i> Tạo bài viết
             </a>
 
+
             <a class="nav-link {{ Route::is('bookmarks.index') ? 'active' : '' }}" href="{{ route('bookmarks.index') }}">
                 <i class="fa-regular fa-bookmark me-3"></i> Đã lưu
+            </a>
+            <a class="nav-link {{ Route::is('post3.myPosts') ? 'active' : '' }}" href="{{ route('posts3.myPosts') }}">
+                <i class="fa-solid fa-list-ul"></i> Bài viết của tôi
             </a>
         </nav>
     </div>
 
+
     <div class="top-banner">
+
 
         <div class="user-area dropdown ms-auto">
             @auth
@@ -167,8 +191,9 @@
     $user = auth()->user();
 @endphp
 
+
 <div style="width:45px; height:45px;">
-    <img 
+    <img
         src="{{ $user->avatar_url ? asset($user->avatar_url) : 'https://ui-avatars.com/api/?name=' . urlencode($user->display_name ?? 'User') }}"
         style="width:100%; height:100%; border-radius:50%; object-fit:cover;"
         alt="avatar"
@@ -176,11 +201,12 @@
 </div>
             </button>
 
+
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                 <li><a class="dropdown-item py-2" href="{{ route('profile') }}"><i class="fa-regular fa-circle-user me-2 text-primary"></i> Profile cá nhân</a></li>
-                
+               
                 <li><a class="dropdown-item py-2 text-primary fw-bold" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-user-shield me-2"></i> Quản trị hệ thống</a></li>
-                
+               
                 <li>
                     <hr class="dropdown-divider">
                 </li>
@@ -202,12 +228,14 @@
         </div>
     </div>
 
+
     <div class="main-content">
         <div class="container-fluid h-100">
             <div class="row h-100 g-0">
                 <div class="col-lg-8 border-end scrollable-column bg-white">
                     @yield('content')
                 </div>
+
 
                 <div class="col-lg-4 scrollable-column">
                     @include('partials.suggestions')
@@ -218,8 +246,11 @@
         </div>
     </div>
 
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @yield('scripts')
 </body>
 
+
 </html>
+

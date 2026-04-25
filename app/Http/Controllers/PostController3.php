@@ -50,62 +50,70 @@ class PostController3 extends Controller
 
     $post->save(); 
 
-    if ($request->hasFile('image')) {
+if ($request->hasFile('image')) {
         foreach ($request->file('image') as $file) {
-            $path = $file->store('uploads/posts', 'public');
+            // 1. Tạo tên file duy nhất
+            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // 2. DI CHUYỂN VÀO PUBLIC (Sửa chỗ này nè Thanh)
+            $file->move(public_path('uploads/posts'), $fileName);
 
-            $media = \App\Models\Media::create([
-            'owner_user_id' => Auth::id(),
-            'type' => 'image',
-            'url' => $path,
-            'filename' => basename($path),
-            'mime' => $file->getClientMimeType(),
-        ]);
+            // 3. Lưu vào DB
+            $media = Media::create([
+                'owner_user_id' => Auth::id(),
+                'type' => 'image',
+                'url' => 'uploads/posts/' . $fileName,
+                'filename' => $fileName,
+                'mime' => $file->getClientMimeType(),
+            ]);
 
-        $post->media()->attach($media->id);
+            $post->media()->attach($media->id);
         }
     }
 
+    // Xử lý video (cũng sửa tương tự luôn)
     if ($request->hasFile('video')) {
         foreach ($request->file('video') as $file) {
-            $path = $file->store('uploads/posts', 'public');
+            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Di chuyển vào public
+            $file->move(public_path('uploads/posts'), $fileName);
 
-            $media = \App\Models\Media::create([
-            'owner_user_id' => Auth::id(),
-            'type' => 'video',
-            'url' => $path,
-            'filename' => basename($path),
-            'mime' => $file->getClientMimeType(),
-        ]);
+            $media = Media::create([
+                'owner_user_id' => Auth::id(),
+                'type' => 'video',
+                'url' => 'uploads/posts/' . $fileName,
+                'filename' => $fileName,
+                'mime' => $file->getClientMimeType(),
+            ]);
 
-        $post->media()->attach($media->id);
+            $post->media()->attach($media->id);
         }
     }
+
 
     return redirect()->route('home')->with('success', 'Đăng bài thành công!');
 }
 
-    public function myPosts()
-    {
-        // 1. Lấy ID của người dùng đang đăng nhập
-        $userId = (int) Auth::id();
+ public function myPosts(Request $request)
+{
+    $query = Post::with('media')->where('user_id', auth()->id());
 
-        if (! $userId) {
-            return redirect()->route('login');
-        }
-
-        // 2. Lấy ra những bài viết của người dùng đó, kèm theo thông tin ảnh
-        $posts = \App\Models\Post::where($this->postAuthorColumn(), $userId)
-            ->where('is_deleted', 0) // Chỉ lấy những bài chưa bị xóa
-            ->with(['media', 'comments' => function ($query) {
-                $query->latest()->take(5);
-            }])
-            ->withCount('comments')
-            ->latest()
-            ->get();
-
-        return view('posts3.my_posts3', compact('posts'));
+    // Tìm kiếm theo từ khóa
+    if ($request->has('search') && $request->search != '') {
+        $query->where('content', 'like', '%' . $request->search . '%');
     }
+
+    // Lọc theo chế độ hiển thị
+    if ($request->has('visibility') && $request->visibility != '') {
+        $query->where('visibility', $request->visibility);
+    }
+
+    // Lấy dữ liệu và phân trang (mỗi trang 6 bài cho đẹp grid)
+    $posts = $query->latest()->paginate(6);
+
+    return view('posts3.my_posts3', compact('posts'));
+}
 
     public function destroy($id)
     {

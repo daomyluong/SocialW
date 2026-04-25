@@ -43,8 +43,12 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
             </div>
             @else
             <div class="rounded-3 overflow-hidden border">
-                <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid w-100" alt="media">
-            </div>
+                <img src="{{ Str::startsWith($mediaItem->url, 'http') ? $mediaItem->url : asset($mediaItem->url) }}" 
+                    class="img-fluid" 
+                    style="object-fit: cover;"
+                    onerror="this.onerror=null;this.src='https://placehold.co/600x400?text=Loi+Anh+Trang+Chu';">
+                            
+    </div>
             @endif
             @endforeach
         </div>

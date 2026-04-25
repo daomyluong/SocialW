@@ -35,7 +35,7 @@
             <p>{{ $post->content }}</p>
 
             {{-- Hiển thị ảnh thật từ Database --}}
-            @if($post->media && $post->media->count() > 0)
+            @if($post->media && $post->media->count() > 0)I
                 <div class="rounded-4 overflow-hidden border mb-3">
                     <div class="row g-1">
                         @foreach($post->media as $media)

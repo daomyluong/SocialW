@@ -25,49 +25,89 @@ public function getFolders()
 
 public function toggleBookmark(Request $request, $postId)
 {
-    $userId = Auth::id();
-    $folderName = $request->input('folder_name', 'Tất cả');
+        try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return response()->json(['error' => 'Chưa đăng nhập'], 401);
+            }
+            
+            $folderName = $request->input('folder_name', 'Tất cả');
+            $action = $request->input('action', 'toggle'); // toggle, remove, add
 
-    // Tìm xem bài này đã lưu chưa
-    $bookmark = Bookmark3::where('user_id', $userId)->where('post_id', $postId)->first();
+            // Tìm xem bài này đã lưu chưa (chỉ tìm bookmark chưa bị xóa)
+            $bookmark = Bookmark3::where('user_id', $userId)
+                                 ->where('post_id', $postId)
+                                 ->where('is_deleted', 0)
+                                 ->first();
 
-    if ($bookmark) {
-        // Nếu đã tồn tại, cập nhật lại thư mục mới
-        $bookmark->update(['folder_name' => $folderName]);
-        return response()->json(['status' => 'updated']);
-    } else {
-        // Nếu chưa, tạo mới hoàn toàn
-        Bookmark3::create([
-            'user_id' => $userId,
-            'post_id' => $postId,
-            'folder_name' => $folderName,
-            'is_deleted' => 0
-        ]);
-        return response()->json(['status' => 'added']);
+            // Xử lý bỏ lưu (remove)
+            if ($action === 'remove' && $bookmark) {
+                $bookmark->update(['is_deleted' => 1]);
+                return response()->json(['status' => 'removed']);
+            }
+
+            if ($bookmark) {
+                // Nếu đã tồn tại, cập nhật lại thư mục mới
+                $bookmark->update(['folder_name' => $folderName]);
+                return response()->json(['status' => 'updated']);
+            } else {
+                // Kiểm tra xem có bookmark bị xóa mềm không, nếu có thì khôi phục
+                $deletedBookmark = Bookmark3::where('user_id', $userId)
+                                             ->where('post_id', $postId)
+                                             ->where('is_deleted', 1)
+                                             ->first();
+                
+                if ($deletedBookmark) {
+                    $deletedBookmark->update([
+                        'folder_name' => $folderName,
+                        'is_deleted' => 0
+                    ]);
+                    return response()->json(['status' => 'restored']);
+                }
+                
+                // Nếu chưa, tạo mới hoàn toàn
+                $newBookmark = Bookmark3::create([
+                    'user_id' => $userId,
+                    'post_id' => $postId,
+                    'folder_name' => $folderName,
+                    'is_deleted' => 0
+                ]);
+                
+                return response()->json(['status' => 'added', 'bookmark' => $newBookmark]);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
-}
 
-public function index(Request $request)
-{
-    $userId = Auth::id();
+    public function index(Request $request)
+    {
+        $userId = Auth::id();
 
-    // 1. Lấy danh sách thư mục duy nhất (sidebar)
-    $allFolders = Bookmark3::where('user_id', $userId)
-                           ->whereNotNull('folder_name')
-                           ->distinct()
-                           ->pluck('folder_name');
+        // 1. Lấy tất cả bookmark (bao gồm cả is_deleted = 0 và is_deleted = 1)
+        $allBookmarks = Bookmark3::where('user_id', $userId)
+                                 ->with('post.author', 'post.media')
+                                 ->latest()
+                                 ->get();
 
-    // 2. Lấy bài viết dựa trên folder được chọn
-    $query = Bookmark3::where('user_id', $userId)->with('post.author','post.media');
-    
-    if ($request->has('folder') && $request->folder !== 'Tất cả') {
-        $query->where('folder_name', $request->folder);
+        // 2. Lấy danh sách thư mục duy nhất (chỉ lấy folder của bookmark chưa xóa)
+        $allFolders = $allBookmarks->where('is_deleted', 0)
+                                   ->pluck('folder_name')
+                                   ->unique()
+                                   ->filter()
+                                   ->sort()
+                                   ->values();
+
+        // 3. Lọc theo folder từ URL
+        $selectedFolder = $request->folder;
+        if ($selectedFolder && $selectedFolder !== 'Tất cả') {
+            $bookmarks = $allBookmarks->where('folder_name', $selectedFolder);
+        } else {
+            $bookmarks = $allBookmarks;
+        }
+
+        return view('bookmarks3', compact('bookmarks', 'allFolders', 'selectedFolder'));
     }
-    
-    $bookmarks = $query->latest()->get();
-
-    return view('bookmarks3', compact('bookmarks', 'allFolders'));
-}
     public function storeFolder(Request $request)
 {
 

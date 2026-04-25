@@ -33,13 +33,23 @@
                             <div class="mb-3">
                                 <p class="small text-muted mb-2">Ảnh hiện có (Nhấn X để xóa):</p>
                                 <div class="d-flex flex-wrap gap-3 mb-3">
-                                    @foreach($post->media as $m)
-                                        <div class="preview-item old-photo" data-id="{{ $m->id }}">
-                                            <img src="{{ asset($m->url) }}" class="rounded border shadow-sm">
-                                            <div class="btn-remove btn-remove-old">&times;</div>
-                                            <span class="badge bg-secondary position-absolute bottom-0 start-50 translate-middle-x mb-1" style="font-size: 10px;">Cũ</span>
-                                        </div>
-                                    @endforeach
+                                
+                                                                @foreach($post->media as $m)
+                            <div class="preview-item old-photo" data-id="{{ $m->id }}">
+                                @php
+                                    // Chỉ lấy tên file, loại bỏ mọi tiền tố 'public/' hay 'storage/' nếu lỡ có
+                                    $fileName = basename($m->url); 
+                                @endphp
+                                
+                                {{-- Trỏ thẳng vào thư mục posts nằm trong public --}}
+                                <img src="{{ asset('posts/' . $fileName) }}" 
+                                    class="rounded border shadow-sm"
+                                    style="width: 85px; height: 85px; object-fit: cover;"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/100x100?text=Loi+Path';">
+                                    
+                                <div class="btn-remove btn-remove-old">&times;</div>
+                            </div>
+                        @endforeach
                                 </div>
                                 <hr>
                             </div>
