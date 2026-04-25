@@ -88,11 +88,34 @@
                 <div>
                     <strong>{{ $postCount }}</strong> Bài viết
                 </div>
-                <div>
-                    <strong>{{ $followerCount }}</strong> Theo dõi
+                <div class="user-stat-link" role="button" data-bs-toggle="modal" data-bs-target="#userListModal" data-type="followers" data-user-id="{{ $user->id }}">
+                    <strong id="count-followers">{{ $followerCount }}</strong> Theo dõi
                 </div>
-                <div>
-                    <strong>{{ $followingCount }}</strong> Đang theo dõi
+                <div class="user-stat-link" role="button" data-bs-toggle="modal" data-bs-target="#userListModal" data-type="following" data-user-id="{{ $user->id }}">
+                    <strong id="count-following">{{ $followingCount }}</strong> Đang theo dõi
+                </div>
+            </div>
+
+            <style>
+                .user-stat-link { cursor: pointer; }
+                .user-stat-link:hover { text-decoration: underline; color: #000; }
+                #userListContent { max-height: 400px; overflow-y: auto; }
+                .user-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+                .user-item:last-child { border-bottom: none; }
+            </style>
+            <div class="modal fade" id="userListModal" tabindex="-1" aria-labelledby="userListModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm modal-md">
+                    <div class="modal-content" style="border-radius: 15px;">
+                        <div class="modal-header border-0">
+                            <h6 class="modal-title fw-bold" id="userListTitle">Danh sách</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0" id="userListContent">
+                            <div class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -265,8 +288,52 @@
                     }
                 });
             });
-
         });
+        document.addEventListener('DOMContentLoaded', function() {
+        const userListModal = document.getElementById('userListModal');
+        
+        userListModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const type = button.getAttribute('data-type'); // 'followers' hoặc 'following'
+            const userId = button.getAttribute('data-user-id');
+            const title = type === 'followers' ? 'Người theo dõi' : 'Đang theo dõi';
+            
+            document.getElementById('userListTitle').innerText = title;
+            const contentContainer = document.getElementById('userListContent');
+            
+            // Hiển thị loading
+            contentContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
+
+            // Gọi API (Bạn cần tạo Route này trong Laravel)
+            fetch(`/profile/${userId}/network?type=${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users && data.users.length > 0) {
+                        let html = '';
+                        data.users.forEach(u => {
+                            html += `
+                                <div class="user-item">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="${u.avatar_url}" class="rounded-circle" width="35" height="35">
+                                        <div>
+                                            <div class="fw-bold" style="font-size: 14px;">${u.display_name}</div>
+                                            <div class="text-muted" style="font-size: 12px;">@${u.username}</div>
+                                        </div>
+                                    </div>
+                                    <a href="/profile/${u.username}" class="btn btn-sm btn-outline-dark fw-bold" style="font-size: 12px;">Xem</a>
+                                </div>
+                            `;
+                        });
+                        contentContainer.innerHTML = html;
+                    } else {
+                        contentContainer.innerHTML = '<div class="text-center py-4 text-muted">Trống.</div>';
+                    }
+                })
+                .catch(error => {
+                    contentContainer.innerHTML = '<div class="text-center py-4 text-danger">Không thể tải dữ liệu.</div>';
+                });
+        });
+    });
     </script>
 </div>
 @endsection
