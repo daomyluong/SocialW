@@ -28,39 +28,30 @@ class ProfileController extends Controller
         $isOwnProfile = (bool) $authUser && (int) $authUser->id === (int) $user->id;
         $currentUserId = Auth::id();
 
-        // --- SỬA TẠI ĐÂY: Dùng Model Post và Scope visible() để lấy bài viết ---
-        $postQuery = \App\Models\Post::query()
-            ->where('user_id', $user->id)
-            ->visible() // <--- Đây chính là "ống lọc" thần thánh
-            ->latest();
+        // Dùng đúng 1 Query duy nhất đi qua ống lọc visible()
+        $postQuery = \App\Models\Post::where('user_id', $user->id)->visible();
 
-        // Lấy danh sách bài viết
+        // 1. Lấy danh sách bài viết (Tự động lọc theo quyền người xem)
         $posts = $postQuery->with([
                 'author:id,username,display_name,avatar_url',
                 'media',
-                'comments' => function ($query) {
-                    $query->with('user:id,username,display_name,avatar_url')->latest()->take(5);
-                },
+                'comments.user:id,username,display_name,avatar_url'
             ])
             ->withCount('comments')
+            ->latest()
             ->get();
 
-        // Đếm bài viết: Bây giờ con số này sẽ luôn đúng với quyền hạn của người đang xem
-        $postCount = $postQuery->count(); 
-        // ----------------------------------------------------------------------
+        // 2. Đếm bài viết (Tự động khớp với số bài hiện bên dưới)
+        $postCount = $postQuery->count();
 
         $followingCount = $user->following_count ?? $user->following()->count();
         $followerCount = $user->follower_count ?? $user->followers()->count();
 
-        $isFollowing = false;
-        if ($authUser && (int)$authUser->id !== (int)$user->id) {
-            $isFollowing = DB::table('followers')
-                ->where('follower_user_id', $authUser->id)
-                ->where('following_user_id', $user->id)
-                ->exists();
-        }
+        $isFollowing = ($authUser && !$isOwnProfile) 
+            ? DB::table('followers')->where('follower_user_id', $authUser->id)->where('following_user_id', $user->id)->exists() 
+            : false;
 
-        // Lấy Like và Bookmark (Giữ nguyên phần này của cậu)
+        // Lấy Like và Bookmark
         $likedPostIds = $currentUserId ? DB::table('post_likes')->where('user_id', $currentUserId)->pluck('post_id')->map(fn($id) => (int)$id)->all() : [];
         $bookmarkedPostIds = $currentUserId ? DB::table('bookmarks3')->where('user_id', $currentUserId)->pluck('post_id')->map(fn($id) => (int)$id)->all() : [];
 

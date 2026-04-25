@@ -153,11 +153,11 @@
 
     <h5 class="fw-bold mb-3">Bảng tin</h5>
 
-    <div id="feed-container">
+    <div id="posts-container">
         @forelse($posts as $post)
             @include('components.post-card', ['post' => $post])
         @empty
-            <div class="alert alert-light border">Chưa có bài viết nào.</div>
+            <div class="alert alert-light border text-center">Chưa có bài viết nào trên bảng tin.</div>
         @endforelse
     </div>
 

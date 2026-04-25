@@ -228,10 +228,10 @@ class PostController3 extends Controller
 
     public function index()
     {
-        $currentUserId = Auth::id() ? (int) Auth::id() : null;
+        $currentUserId = Auth::id();
 
-        $postsQuery = \App\Models\Post::query()
-            ->where('is_deleted', 0)
+        // 1. Lấy bài viết (Dùng ống lọc visible)
+        $posts = \App\Models\Post::visible()
             ->with([
                 'author:id,username,display_name,avatar_url',
                 'media',
@@ -239,32 +239,9 @@ class PostController3 extends Controller
                     $query->with('user:id,username,display_name,avatar_url')->latest()->take(5);
                 },
             ])
-            ->withCount('comments');
-
-        $postAuthorColumn = $this->postAuthorColumn();
-
-        if ($currentUserId) {
-            $followingIds = DB::table('followers')
-                ->where('follower_user_id', $currentUserId)
-                ->pluck('following_user_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            $postsQuery->where(function ($visibilityScope) use ($currentUserId, $followingIds, $postAuthorColumn): void {
-                $visibilityScope
-                    ->where('visibility', 'public')
-                    ->orWhere($postAuthorColumn, $currentUserId)
-                    ->orWhere(function ($followersScope) use ($followingIds, $postAuthorColumn): void {
-                        $followersScope
-                            ->whereIn($postAuthorColumn, $followingIds)
-                            ->whereIn('visibility', ['public', 'follower']);
-                    });
-            });
-        } else {
-            $postsQuery->where('visibility', 'public');
-        }
-
-        $posts = $postsQuery->latest()->get();
+            ->withCount('comments')
+            ->latest()
+            ->get();
 
         $likedPostIds = [];
         $bookmarkedPostIds = [];
@@ -272,55 +249,24 @@ class PostController3 extends Controller
         $savedPosts = collect();
 
         if ($currentUserId) {
-            $bookmarksQuery = Bookmark3::query()->where('user_id', $currentUserId);
-            $savedPostsQuery = Bookmark3::query()->where('user_id', $currentUserId);
+            // Lấy danh sách ID đã like
+            $likedPostIds = DB::table('post_likes')->where('user_id', $currentUserId)->pluck('post_id')->toArray();
 
-            if (Schema::hasTable('bookmarks3') && Schema::hasColumn('bookmarks3', 'is_deleted')) {
-                $bookmarksQuery->where('is_deleted', 0);
-                $savedPostsQuery->where('is_deleted', 0);
-            }
+            // Lấy danh sách ID đã bookmark
+            $bookmarkedPostIds = DB::table('bookmarks3')->where('user_id', $currentUserId)->where('is_deleted', 0)->pluck('post_id')->toArray();
 
-            $likedPostIds = DB::table('post_likes')
-                ->where('user_id', $currentUserId)
-                ->pluck('post_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
+            // Lấy gợi ý kết bạn
+            $followingIds = DB::table('followers')->where('follower_user_id', $currentUserId)->pluck('following_user_id')->toArray();
+            $suggestedUsers = User::where('id', '!=', $currentUserId)->whereNotIn('id', $followingIds)->inRandomOrder()->limit(6)->get();
 
-            $bookmarkedPostIds = $bookmarksQuery
-                ->pluck('post_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            $followingIds = DB::table('followers')
-                ->where('follower_user_id', $currentUserId)
-                ->pluck('following_user_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            $suggestedUsers = User::query()
-                ->where('id', '!=', $currentUserId)
-                ->where('is_active', 1)
-                ->whereNotIn('id', $followingIds)
-                ->inRandomOrder()
-                ->limit(6)
-                ->get();
-
-            $savedPosts = $savedPostsQuery
-                ->with(['post.author:id,username,display_name'])
-                ->latest()
-                ->limit(5)
-                ->get();
+            // Lấy bài viết đã lưu gần đây
+            $savedPosts = \App\Models\Bookmark3::where('user_id', $currentUserId)->where('is_deleted', 0)->with(['post.author'])->latest()->limit(5)->get();
         }
 
-        // 2. Lấy dữ liệu Story trong vòng 24h qua
+        // 2. Lấy Story
         $stories = collect();
-
         if (Schema::hasTable('stories')) {
-            $stories = \App\Models\Story3::active24h()
-                ->with('user') // Lấy thông tin người đăng để hiện avatar
-                ->latest()
-                ->get()
-                ->groupBy('user_id');
+            $stories = \App\Models\Story3::active24h()->with('user')->latest()->get()->groupBy('user_id');
         }
 
         return view('home', compact('posts', 'stories', 'likedPostIds', 'bookmarkedPostIds', 'suggestedUsers', 'savedPosts'));
@@ -345,32 +291,12 @@ class PostController3 extends Controller
     }
     public function show($id)
     {
-        $currentUserId = Auth::id();
-        
-        $post = \App\Models\Post::with([
+        // Nếu bài viết không Visible với người xem, Laravel tự văng lỗi 404/403 luôn
+        $post = \App\Models\Post::visible()->with([
             'author:id,username,display_name,avatar_url',
             'media',
             'comments.user:id,username,display_name,avatar_url',
         ])->findOrFail($id);
-
-        // KIỂM TRA QUYỀN TRUY CẬP
-        if ($post->visibility !== 'public' && $post->user_id !== $currentUserId) {
-            // Nếu là bài 'follower' thì kiểm tra xem người xem có đang follow tác giả không
-            if ($post->visibility === 'follower') {
-                $isFollowing = DB::table('followers')
-                    ->where('follower_user_id', $currentUserId)
-                    ->where('following_user_id', $post->user_id)
-                    ->exists();
-                
-                if (!$isFollowing) {
-                    abort(403, 'Bạn phải theo dõi người này mới xem được bài viết.');
-                }
-            } 
-            // Nếu là bài 'private' (và không phải chính chủ vì đã rẽ nhánh ở trên)
-            else if ($post->visibility === 'private') {
-                abort(403, 'Bài viết này ở chế độ riêng tư.');
-            }
-        }
 
         $stories = \App\Models\Story3::latest()->get();
 

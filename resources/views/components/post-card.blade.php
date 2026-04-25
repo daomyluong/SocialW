@@ -1,7 +1,7 @@
-@forelse($posts as $post)
 @php
-$isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
-$isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
+    // Tính toán lại trạng thái Like và Bookmark cho từng bài viết lẻ
+    $isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
+    $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
 @endphp
 
 <div class="card post-card mb-3" id="post-{{ $post->id }}">
@@ -124,6 +124,4 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
         </div>
     </div>
 </div>
-@empty
-<div class="alert alert-light border">Chưa có bài viết nào trên bảng tin.</div>
-@endforelse
+
