@@ -41,6 +41,14 @@
             <div class="small text-muted mb-1">
                 {{ '@'.($post->author->username ?? 'guest') }} · {{ optional($post->created_at)->diffForHumans() }}
             </div>
+            <a href="{{ route('posts3.show', $post->id) }}" class="text-decoration-none text-dark d-block">
+            <div class="border rounded-3 p-2 mb-2 bg-white card-hover-effect">
+                <div class="small text-muted mb-1">
+                    {{ '@'.($post->author->username ?? 'guest') }} · {{ optional($post->created_at)->diffForHumans() }}
+                </div>
+                <div>{{ $post->content }}</div>
+            </div>
+            </a>
             <div>{{ $post->content }}</div>
         </div>
         @empty

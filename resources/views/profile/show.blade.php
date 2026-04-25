@@ -176,62 +176,6 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabs = document.querySelectorAll('#profileTabs .nav-item-threads');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    tabs.forEach(item => item.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-
-            document.addEventListener('click', async function(event) {
-                const followBtn = event.target.closest('.follow-btn');
-                if (!followBtn) {
-                    return;
-                }
-
-                const userId = followBtn.getAttribute('data-user-id');
-
-                try {
-                    const response = await fetch(`/users/${userId}/follow`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        return;
-                    }
-
-                    const data = await response.json();
-                    if (!data || !data.status) {
-                        return;
-                    }
-
-                    const followed = data.status === 'followed';
-
-                    document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach((btn) => {
-                        btn.classList.toggle('btn-primary', followed);
-                        btn.classList.toggle('btn-outline-primary', !followed);
-                        btn.classList.toggle('text-primary', !followed);
-                        btn.classList.toggle('text-secondary', followed);
-
-                        const textNode = btn.querySelector('.follow-text');
-                        if (textNode) {
-                            textNode.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
-                        } else {
-                            btn.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
-                        }
-                    });
-                } catch (e) {
-                    console.error(e);
-                }
-            });
-        });
         document.addEventListener('DOMContentLoaded', () => {
 
             // LIKE
@@ -320,7 +264,7 @@
                                             <div class="text-muted" style="font-size: 12px;">@${u.username}</div>
                                         </div>
                                     </div>
-                                    <a href="/profile/${u.username}" class="btn btn-sm btn-outline-dark fw-bold" style="font-size: 12px;">Xem</a>
+                                    <a href="/profile/${u.id}" class="btn btn-sm btn-outline-dark fw-bold" style="font-size: 12px;">Xem</a>
                                 </div>
                             `;
                         });

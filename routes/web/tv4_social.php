@@ -15,4 +15,5 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
     Route::get('/suggestions', [HomeController4::class, 'allSuggestions'])->name('users.suggestions');
     Route::post('/report', [InteractionController4::class, 'report'])->name('report.store');
+    Route::post('/comments/{comment}/like', [\App\Http\Controllers\InteractionController4::class, 'likeComment'])->name('comments.like');
 });

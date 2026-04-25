@@ -66,90 +66,125 @@
 
     @auth
     <div class="feed-hero mb-4">
+        {{-- Form Đăng Bài Nhanh --}}
         <form action="{{ route('posts3.store') }}" method="POST" enctype="multipart/form-data" class="d-flex flex-column gap-3">
             @csrf
             <input type="text" name="content" class="form-control border-0" style="border-radius: 14px; background: #fff;" placeholder="Bạn đang nghĩ gì, {{ auth()->user()?->display_name ?? 'bạn' }}?">
-            <input type="hidden" name="visibility" value="public">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <label for="homePostImage" class="btn btn-outline-primary btn-sm rounded-pill mb-0"><i class="fa-regular fa-image me-1"></i> Ảnh</label>
-                <input type="file" id="homePostImage" name="image[]" class="d-none" accept="image/*" multiple>
-                <label for="homePostVideo" class="btn btn-outline-danger btn-sm rounded-pill mb-0"><i class="fa-solid fa-video me-1"></i> Video</label>
-                <input type="file" id="homePostVideo" name="video[]" class="d-none" accept="video/*" multiple>
-                <div id="imagePreviewContainer" class="d-flex gap-2 mb-2"></div>
+            
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="d-flex gap-2 align-items-center">
+                    <label for="homePostImage" class="btn btn-outline-primary btn-sm rounded-pill mb-0"><i class="fa-regular fa-image me-1"></i> Ảnh</label>
+                    <input type="file" id="homePostImage" name="image[]" class="d-none" accept="image/*" multiple>
+                    <label for="homePostVideo" class="btn btn-outline-danger btn-sm rounded-pill mb-0"><i class="fa-solid fa-video me-1"></i> Video</label>
+                    <input type="file" id="homePostVideo" name="video[]" class="d-none" accept="video/*" multiple>
+                    
+                    {{-- THÊM PHẦN CHỌN QUYỀN RIÊNG TƯ --}}
+                    <select name="visibility" class="form-select form-select-sm border-0 bg-white" style="width: auto; border-radius: 10px;">
+                        <option value="public" selected>🌍 Công khai</option>
+                        <option value="follower">👥 Người theo dõi</option>
+                        <option value="private">🔒 Chỉ mình tôi</option>
+                    </select>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Đăng bài</button>
             </div>
+            <div id="imagePreviewContainer" class="d-flex gap-2 mb-2"></div>
         </form>
+
         <hr>
+        
+        {{-- Form Đăng Story --}}
         <form action="{{ route('stories.store') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
             @csrf
+            {{-- Mặc định Story là public, nếu muốn sau này có thể thêm select y hệt ở trên --}}
+            <input type="hidden" name="visibility" value="public">
             <input type="file" name="media" class="form-control form-control-sm" accept="image/*,video/*" required>
-            <button type="submit" class="btn btn-warning btn-sm rounded-pill">Đăng story</button>
+            <button type="submit" class="btn btn-warning btn-sm rounded-pill text-dark fw-bold">Đăng story</button>
         </form>
     </div>
     @endauth
 
+@php
+        // Xử lý dữ liệu Story an toàn
+        $storyData = [];
+        if(isset($stories) && $stories->isNotEmpty()) {
+            foreach($stories as $userId => $userStories) {
+                $storyOwner = $userStories->first()?->user;
+                $authorName = $storyOwner?->display_name ?? $storyOwner?->username ?? ('User #'.$userId);
+                $authorAvatar = $storyOwner?->avatar_url ? asset($storyOwner->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($authorName).'&background=random';
+                
+                foreach($userStories as $s) {
+                    $storyData[] = [
+                        'user_id' => (string) $userId,
+                        'url' => asset($s->media_url),
+                        'type' => $s->type,
+                        'author_name' => $authorName,
+                        'author_avatar' => $authorAvatar
+                    ];
+                }
+            }
+        }
+    @endphp
+
+    {{-- KHUNG STORY HÌNH CHỮ NHẬT --}}
     @if(isset($stories) && $stories->isNotEmpty())
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body d-flex gap-3 overflow-auto">
+    <div class="mb-4">
+        <h5 class="fw-bold mb-3">Story</h5>
+        <div class="d-flex gap-2 overflow-auto pb-2 px-1">
             @foreach($stories as $userId => $userStories)
             @php
-            $storyOwner = $userStories->first()?->user;
+                $firstStory = $userStories->first();
+                $storyOwner = $firstStory?->user;
+                $authorName = $storyOwner?->display_name ?? $storyOwner?->username ?? ('User #'.$userId);
+                $authorAvatar = $storyOwner?->avatar_url ? asset($storyOwner->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($authorName).'&background=random';
             @endphp
-            <div class="text-center story-badge">
-                <div class="rounded-circle p-1 mx-auto mb-1" style="width: 58px; height: 58px; background: linear-gradient(45deg, #f59e0b, #ef4444, #db2777);">
-                    <img src="{{ $storyOwner?->avatar_url ? asset($storyOwner->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($storyOwner?->display_name ?? ('User '.$userId)).'&background=random' }}" class="rounded-circle border border-2 border-white w-100 h-100" style="object-fit: cover;" alt="story">
+            
+            <div class="position-relative rounded-4 shadow-sm flex-shrink-0"
+                 style="width: 115px; height: 170px; cursor: pointer; background: #000; overflow: hidden; border: 1px solid #e8edf5;"
+                 onclick="openStoryViewer('{{ $userId }}')">
+                 
+                @if($firstStory->type == 'image')
+                    <img src="{{ asset($firstStory->media_url) }}" class="w-100 h-100" style="object-fit: cover; opacity: 0.85;">
+                @else
+                    <video class="w-100 h-100" style="object-fit: cover; opacity: 0.85;" muted>
+                        <source src="{{ asset($firstStory->media_url) }}">
+                    </video>
+                @endif
+                <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%);"></div>
+                <div class="position-absolute top-0 start-0 p-2">
+                    <div class="rounded-circle p-1" style="background: #0062ff;">
+                        <img src="{{ $authorAvatar }}" class="rounded-circle border border-white" width="34" height="34" style="object-fit: cover;" alt="avatar">
+                    </div>
                 </div>
-                <small class="text-muted d-block text-truncate">{{ $storyOwner?->display_name ?? $storyOwner?->username ?? ('User #'.$userId) }}</small>
+                <div class="position-absolute bottom-0 start-0 w-100 p-2 text-white text-truncate text-center" style="font-size: 12px; font-weight: 600;">
+                    {{ $authorName }}
+                </div>
             </div>
             @endforeach
         </div>
     </div>
     @endif
 
-    @php
-        $stories = \App\Models\Story3::latest()->get();
-    @endphp
-
-<div class="mb-4">
-    <h5 class="fw-bold">Story</h5>
-    <div class="d-flex gap-2 overflow-auto pb-2">
-        @foreach($stories as $index => $story)
-            <div class="story-thumbnail" onclick="openStoryViewer({{ $index }})" style="cursor:pointer; min-width:100px;">
-                @if($story->type == 'image')
-                    <img src="{{ asset($story->media_url) }}" width="100" height="150" class="rounded-3" style="object-fit: cover;">
-                @else
-                    <video width="100" height="150" class="rounded-3" style="object-fit: cover;">
-                        <source src="{{ asset($story->media_url) }}">
-                    </video>
-                @endif
-            </div>
-        @endforeach
-    </div>
-</div>
-
-<script>
-    const storyList = @json($stories->map(fn($s) => ['url' => asset($s->media_url), 'type' => $s->type]));
-    let currentIdx = 0;
-</script>
-
-<div class="modal fade" id="storyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-        <div class="modal-content bg-dark border-0 position-relative">
-            
-            <button class="btn btn-link text-white position-absolute top-50 start-0 translate-middle-y z-3" onclick="changeStory(-1)">
-                <i class="fa-solid fa-chevron-left fa-2x"></i>
-            </button>
-            <button class="btn btn-link text-white position-absolute top-50 end-0 translate-middle-y z-3" onclick="changeStory(1)">
-                <i class="fa-solid fa-chevron-right fa-2x"></i>
-            </button>
-
-            <div class="modal-body p-0 text-center bg-black rounded-3 overflow-hidden" style="height: 70vh; display: flex; align-items: center;">
-                <img id="viewImg" class="w-100 d-none">
-                <video id="viewVid" controls autoplay muted class="w-100 d-none"></video>
+    {{-- MODAL XEM STORY --}}
+    <div class="modal fade" id="storyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content bg-dark border-0 position-relative">
+                <div class="position-absolute top-0 start-0 w-100 p-3 z-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <img id="storyAuthorAvatar" src="" class="rounded-circle" width="38" height="38" style="object-fit: cover; border: 2px solid white;">
+                        <span id="storyAuthorName" class="text-white fw-bold shadow-sm"></span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <button class="btn btn-link text-white position-absolute top-50 start-0 translate-middle-y z-3" onclick="changeStory(-1)"><i class="fa-solid fa-chevron-left fa-2x"></i></button>
+                <button class="btn btn-link text-white position-absolute top-50 end-0 translate-middle-y z-3" onclick="changeStory(1)"><i class="fa-solid fa-chevron-right fa-2x"></i></button>
+                <div class="modal-body p-0 text-center bg-black rounded-3 overflow-hidden" style="height: 75vh; display: flex; align-items: center;">
+                    <img id="viewImg" class="w-100 d-none" style="max-height: 100%; object-fit: contain;">
+                    <video id="viewVid" controls autoplay class="w-100 d-none" style="max-height: 100%;"></video>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <h5 class="fw-bold mb-3">Bảng tin</h5>
 
@@ -288,44 +323,6 @@
 
         document.addEventListener('click', async (event) => {
 
-            const followBtn = event.target.closest('.follow-btn');
-            if (followBtn) {
-                const userId = followBtn.getAttribute('data-user-id');
-                try {
-                    const response = await fetch(`/users/${userId}/follow`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrf,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
-                    });
-
-                    if (!response.ok) return;
-
-                    const data = await response.json();
-                    if (data.status) {
-                        const followed = data.status === 'followed';
-                        document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach((btn) => {
-                            btn.classList.toggle('btn-primary', followed);
-                            btn.classList.toggle('btn-outline-primary', !followed);
-                            btn.classList.toggle('text-primary', !followed);
-                            btn.classList.toggle('text-secondary', followed);
-
-                            const textNode = btn.querySelector('.follow-text');
-                            if (textNode) {
-                                textNode.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
-                            } else {
-                                btn.textContent = followed ? 'Đang theo dõi' : 'Theo dõi';
-                            }
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-                return;
-            }
-
             const loadMoreBtn = event.target.closest('.load-more-btn');
             if (!loadMoreBtn) {
                 return;
@@ -393,21 +390,32 @@
         });
         if (res.ok) location.reload();
     }
-    let storyModal;
 
-    function openStoryViewer(index) {
-        if (!storyModal) storyModal = new bootstrap.Modal(document.getElementById('storyModal'));
-        currentIdx = index;
-        showContent();
-        storyModal.show();
+    
+const allStories = @json($storyData ?? []);
+    let currentStoryIdx = 0;
+    let storyModalInstance = null;
+
+    function openStoryViewer(userId) {
+        const startIdx = allStories.findIndex(s => s.user_id === userId);
+        if (startIdx !== -1) {
+            currentStoryIdx = startIdx;
+            if (!storyModalInstance) {
+                storyModalInstance = new bootstrap.Modal(document.getElementById('storyModal'));
+            }
+            showStoryContent();
+            storyModalInstance.show();
+        }
     }
 
-    function showContent() {
-        const story = storyList[currentIdx];
+    function showStoryContent() {
+        const story = allStories[currentStoryIdx];
         const img = document.getElementById('viewImg');
         const vid = document.getElementById('viewVid');
+        
+        document.getElementById('storyAuthorName').textContent = story.author_name;
+        document.getElementById('storyAuthorAvatar').src = story.author_avatar;
 
-        // Ẩn tất cả trước khi hiện
         img.classList.add('d-none');
         vid.classList.add('d-none');
         vid.pause();
@@ -419,28 +427,27 @@
         } else {
             vid.src = story.url;
             vid.classList.remove('d-none');
-            vid.load(); // Buộc video tải lại nguồn mới
+            vid.load();
             vid.play();
         }
     }
 
     function changeStory(step) {
-        let newIdx = currentIdx + step;
-        
-        // Nếu vẫn nằm trong danh sách thì chuyển
-        if (newIdx >= 0 && newIdx < storyList.length) {
-            currentIdx = newIdx;
-            showContent();
+        let newIdx = currentStoryIdx + step;
+        if (newIdx >= 0 && newIdx < allStories.length) {
+            currentStoryIdx = newIdx;
+            showStoryContent();
         } else {
-            // Nếu hết danh sách thì đóng modal
-            storyModal.hide();
+            storyModalInstance.hide();
         }
     }
 
     document.addEventListener('keydown', (e) => {
-        if (!document.getElementById('storyModal').classList.contains('show')) return;
-        if (e.key === "ArrowLeft") changeStory(-1);
-        if (e.key === "ArrowRight") changeStory(1);
+        const modalEl = document.getElementById('storyModal');
+        if (modalEl && modalEl.classList.contains('show')) {
+            if (e.key === "ArrowLeft") changeStory(-1);
+            if (e.key === "ArrowRight") changeStory(1);
+        }
     });
 </script>
 

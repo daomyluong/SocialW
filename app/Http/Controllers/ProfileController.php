@@ -177,6 +177,7 @@ class ProfileController extends Controller
         // 3. Định dạng lại dữ liệu để trả về cho JavaScript
         $formattedUsers = $users->map(function ($u) {
             return [
+                'id'           => $u->id,
                 'username'     => $u->username,
                 'display_name' => $u->display_name,
                 'avatar_url'   => $u->avatar_url 

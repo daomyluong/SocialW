@@ -30,25 +30,25 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
         View::composer('partials.suggestions', function ($view) {
-            if (!Auth::check()) {
-                return;
+            if (Auth::check()) {
+                $currentUserId = Auth::id();
+
+                // 1. Lấy danh sách ID những người mình ĐÃ theo dõi
+                $followingIds = DB::table('followers')
+                    ->where('follower_user_id', $currentUserId)
+                    ->pluck('following_user_id')
+                    ->toArray();
+
+                // 2. Chỉ gợi ý những người CHƯA theo dõi và KHÔNG PHẢI là mình
+                $suggestedUsers = User::where('id', '!=', $currentUserId)
+                    ->whereNotIn('id', $followingIds) // Loại bỏ người đã follow
+                    ->inRandomOrder()
+                    ->limit(10)
+                    ->get();
+
+                $view->with('suggestedUsers', $suggestedUsers);
+                $view->with('followingIds', $followingIds); // Vẫn gửi cái này để nếu cần check ở đâu đó
             }
-
-            $currentUserId = (int) Auth::id();
-
-            $suggestedUsers = User::where('id', '!=', $currentUserId)
-                ->inRandomOrder()
-                ->limit(5)
-                ->get();
-
-            $followingIds = DB::table('followers')
-                ->where('follower_user_id', $currentUserId)
-                ->pluck('following_user_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            $view->with('suggestedUsers', $suggestedUsers);
-            $view->with('followingIds', $followingIds);
         });
 
         Gate::policy(User::class, UserPolicy::class);

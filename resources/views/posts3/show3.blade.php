@@ -72,7 +72,19 @@
                     <div>
                         <div class="fw-semibold" style="font-size: 0.92rem;">{{ $comment->user?->display_name ?? $comment->user?->username ?? ('User_'.$comment->user_id) }}</div>
                         <div class="text-dark" style="white-space: pre-wrap;">{{ $comment->content }}</div>
-                        <small class="text-muted">{{ optional($comment->created_at)->diffForHumans() }}</small>
+
+                        {{-- THANH CÔNG CỤ BÌNH LUẬN: Thời gian + Nút Like --}}
+                        <div class="d-flex align-items-center gap-3 mt-1">
+                            <small class="text-muted">{{ optional($comment->created_at)->diffForHumans() }}</small>
+                            
+                            @auth
+                            <button type="button" class="btn btn-link p-0 text-decoration-none btn-like-comment" 
+                                    data-comment-id="{{ $comment->id }}" style="font-size: 13px;">
+                                <i class="fa-{{ $comment->isLikedBy(auth()->user()) ? 'solid text-danger' : 'regular text-secondary' }} fa-heart"></i>
+                                <span class="comment-like-count text-secondary fw-semibold ms-1">{{ $comment->likes()->count() }}</span>
+                            </button>
+                            @endauth
+                        </div>
                     </div>
                 </div>
 
@@ -180,5 +192,42 @@
     function closeStory() {
         document.getElementById('storyModal').style.display = 'none';
     }
+
+    // --- XỬ LÝ LIKE BÌNH LUẬN ---
+    document.addEventListener('click', async function(event) {
+        const likeBtn = event.target.closest('.btn-like-comment');
+        if (likeBtn) {
+            event.preventDefault();
+            const commentId = likeBtn.dataset.commentId;
+            const icon = likeBtn.querySelector('.fa-heart');
+            const countSpan = likeBtn.querySelector('.comment-like-count');
+
+            try {
+                const response = await fetch(`/comments/${commentId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Đổi màu trái tim
+                    icon.classList.toggle('fa-solid', data.liked);
+                    icon.classList.toggle('fa-regular', !data.liked);
+                    icon.classList.toggle('text-danger', data.liked);
+                    icon.classList.toggle('text-secondary', !data.liked);
+                    
+                    // Cập nhật số đếm
+                    countSpan.textContent = data.count > 0 ? data.count : 0;
+                }
+            } catch (error) {
+                console.error("Lỗi like bình luận:", error);
+            }
+        }
+    });
 </script>
 @endsection

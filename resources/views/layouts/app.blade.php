@@ -290,6 +290,47 @@
             alert('Có lỗi xảy ra, vui lòng thử lại.');
         }
     }
+
+    document.addEventListener('click', async function(event) {
+        const btn = event.target.closest('.follow-btn');
+        if (!btn) return;
+
+        event.preventDefault();
+        const userId = btn.getAttribute('data-user-id');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        try {
+            const response = await fetch(`/users/${userId}/follow`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const isFollowing = data.is_following;
+
+                // Cập nhật tất cả các nút follow của user này trên toàn bộ trang hiện tại
+                document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach(el => {
+                    if (isFollowing) {
+                        el.textContent = 'Đang theo dõi';
+                        el.classList.remove('text-primary');
+                        el.classList.add('text-secondary');
+                    } else {
+                        el.textContent = 'Theo dõi';
+                        el.classList.remove('text-secondary');
+                        el.classList.add('text-primary');
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Lỗi Follow:', error);
+        }
+    });
 </script>
 </body>
 

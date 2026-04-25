@@ -32,4 +32,17 @@ class Comment4 extends Model
     {
         return $this->belongsTo(Post::class, 'post_id');
     }
+
+    // Thêm quan hệ likes
+    public function likes()
+    {
+        return $this->belongsToMany(User::class, 'comment_likes', 'comment_id', 'user_id')->withTimestamps();
+    }
+
+    // Kiểm tra user hiện tại đã like bình luận này chưa
+    public function isLikedBy($user)
+    {
+        if (!$user) return false;
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
 }

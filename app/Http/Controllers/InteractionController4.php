@@ -267,4 +267,18 @@ class InteractionController4 extends Controller
         ]);
         return response()->json(['success' => true]);
     }
+
+    public function likeComment($commentId)
+    {
+        $comment = \App\Models\Comment4::findOrFail($commentId);
+        $user = auth()->user();
+
+        // toggle() sẽ tự động thêm nếu chưa like, và xóa nếu đã like rồi
+        $liked = $comment->likes()->toggle($user->id);
+        
+        return response()->json([
+            'liked' => count($liked['attached']) > 0,
+            'count' => $comment->likes()->count()
+        ]);
+    }
 }
