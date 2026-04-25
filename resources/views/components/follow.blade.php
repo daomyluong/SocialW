@@ -4,6 +4,7 @@
     <form action="{{ route('users.follow', $userId) }}" method="POST">
         @csrf
         <button type="submit" 
+            data-user-id="{{ $userId }}"
             class="w-full py-2 rounded-xl font-bold border transition
             {{ $isFollowing 
                 ? 'bg-white text-black border-gray-300' 

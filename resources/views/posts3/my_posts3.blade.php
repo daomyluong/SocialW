@@ -47,20 +47,20 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
                            <li>
-    <a class="dropdown-item" href="{{ route('posts3.edit', $post->id) }}">
-        <i class="fa-solid fa-pen me-2"></i>Chỉnh sửa
-    </a>
-</li>
+                                <a class="dropdown-item" href="{{ route('posts3.edit', $post->id) }}">
+                                    <i class="fa-solid fa-pen me-2"></i>Chỉnh sửa
+                                </a>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-    <form action="{{ route('posts3.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Xác nhận xóa bài viết này?')">
-        @csrf
-        @method('DELETE')
-        <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
-            <i class="fa-solid fa-trash me-2"></i>Xóa bài viết
-        </button>
-    </form>
-</li>
+                                <form action="{{ route('posts3.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Xác nhận xóa bài viết này?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                        <i class="fa-solid fa-trash me-2"></i>Xóa bài viết
+                                    </button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
                 </div>

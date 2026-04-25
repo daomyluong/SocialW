@@ -64,9 +64,9 @@
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <div class="d-flex align-items-center">
                             <img src="{{ $bm->post->author?->avatar_url 
-    ? asset($bm->post->author->avatar_url) 
-    : 'https://ui-avatars.com/api/?name=' . urlencode($bm->post->author?->display_name ?? $bm->post->author?->username ?? 'User') 
-}}"
+                                        ? asset($bm->post->author->avatar_url) 
+                                        : 'https://ui-avatars.com/api/?name=' . urlencode($bm->post->author?->display_name ?? $bm->post->author?->username ?? 'User') 
+                                    }}"
                                 class="rounded-circle me-2 border" width="40" height="40">
 
                             <div class="fw-bold small">
