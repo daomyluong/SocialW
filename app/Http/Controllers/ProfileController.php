@@ -194,4 +194,38 @@ class ProfileController extends Controller
             'is_following' => $isFollowing,
         ]);
     }
+    // Lấy danh sách người theo dõi hoặc đang theo dõi (trả về JSON)
+    public function getNetwork(Request $request, int $id): JsonResponse
+    {
+        // 1. Tìm người dùng đang được xem profile
+        $user = User::findOrFail($id);
+        
+        // 2. Xác định loại danh sách cần lấy (followers hoặc following)
+        $type = $request->query('type', 'followers');
+
+        if ($type === 'following') {
+            // Lấy danh sách những người mà user này đang theo dõi
+            $users = $user->following()
+                ->select('users.id', 'users.username', 'users.display_name', 'users.avatar_url')
+                ->get();
+        } else {
+            // Lấy danh sách những người đang theo dõi user này
+            $users = $user->followers()
+                ->select('users.id', 'users.username', 'users.display_name', 'users.avatar_url')
+                ->get();
+        }
+
+        // 3. Định dạng lại dữ liệu để trả về cho JavaScript
+        $formattedUsers = $users->map(function ($u) {
+            return [
+                'username'     => $u->username,
+                'display_name' => $u->display_name,
+                'avatar_url'   => $u->avatar_url 
+                                    ? asset($u->avatar_url) 
+                                    : 'https://ui-avatars.com/api/?name=' . urlencode($u->display_name),
+            ];
+        });
+
+        return response()->json(['users' => $formattedUsers]);
+    }
 }
