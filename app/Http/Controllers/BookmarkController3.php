@@ -34,6 +34,8 @@ public function toggleBookmark(Request $request, $postId)
             $folderName = $request->input('folder_name', 'Tất cả');
             $action = $request->input('action', 'toggle'); // toggle, remove, add
 
+            \Log::info("Bookmark toggle: user=$userId, post=$postId, action=$action");
+
             // Tìm xem bài này đã lưu chưa (chỉ tìm bookmark chưa bị xóa)
             $bookmark = Bookmark3::where('user_id', $userId)
                                  ->where('post_id', $postId)
@@ -43,6 +45,7 @@ public function toggleBookmark(Request $request, $postId)
             // Xử lý bỏ lưu (remove)
             if ($action === 'remove' && $bookmark) {
                 $bookmark->update(['is_deleted' => 1]);
+                \Log::info("Bookmark removed: id=" . $bookmark->id);
                 return response()->json(['status' => 'removed']);
             }
 
@@ -84,15 +87,15 @@ public function toggleBookmark(Request $request, $postId)
     {
         $userId = Auth::id();
 
-        // 1. Lấy tất cả bookmark (bao gồm cả is_deleted = 0 và is_deleted = 1)
+        // 1. Lấy tất cả bookmark CHƯA bị xóa (is_deleted = 0)
         $allBookmarks = Bookmark3::where('user_id', $userId)
+                                 ->where('is_deleted', 0)
                                  ->with('post.author', 'post.media')
                                  ->latest()
                                  ->get();
 
-        // 2. Lấy danh sách thư mục duy nhất (chỉ lấy folder của bookmark chưa xóa)
-        $allFolders = $allBookmarks->where('is_deleted', 0)
-                                   ->pluck('folder_name')
+        // 2. Lấy danh sách thư mục duy nhất
+        $allFolders = $allBookmarks->pluck('folder_name')
                                    ->unique()
                                    ->filter()
                                    ->sort()

@@ -9,7 +9,7 @@ use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-
+use Illuminate\Pagination\Paginator;
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -25,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrap();
         \Illuminate\Support\Facades\View::composer('partials.suggestions', function ($view) {
             if (Auth::check()) {
                 $suggestedUsers = \App\Models\User::where('id', '!=', Auth::id())
