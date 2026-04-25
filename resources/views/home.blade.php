@@ -286,39 +286,7 @@
             }
         });
 
-        document.body.addEventListener('click', async (event) => {
-            const bookmarkBtn = event.target.closest('.bookmark-btn');
-            if (bookmarkBtn) {
-                const postId = bookmarkBtn.getAttribute('data-post-id');
-                try {
-                    const response = await fetch(`/bookmarks/toggle/${postId}`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrf,
-                            'Content-Type': 'application/json',
-                            Accept: 'application/json',
-                        },
-                        body: JSON.stringify({
-                            folder_name: 'Tất cả',
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        return;
-                    }
-
-                    const payload = await response.json();
-                    const icon = bookmarkBtn.querySelector('i');
-                    const added = payload.status === 'added';
-                    icon.classList.toggle('fa-solid', added);
-                    icon.classList.toggle('fa-regular', !added);
-                    icon.classList.toggle('text-primary', added);
-                    icon.classList.toggle('text-secondary', !added);
-                } catch (error) {
-                    // ignore
-                }
-                return;
-            }
+        document.addEventListener('click', async (event) => {
 
             const followBtn = event.target.closest('.follow-btn');
             if (followBtn) {

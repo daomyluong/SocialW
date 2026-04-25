@@ -15,9 +15,9 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
                 </div>
             </div>
             @auth
-            @php $isBookmarked = in_array((int) $post->id, $likedPostIds ?? [], true); @endphp
+            @php $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true); @endphp
             <button type="button" class="btn btn-sm bookmark-btn" data-post-id="{{ $post->id }}">
-                <i class="fa-regular fa-bookmark text-secondary"></i>
+                <i class="fa-{{ $isBookmarked ? 'solid text-primary' : 'regular text-secondary' }} fa-bookmark"></i>
             </button>
             @endauth
         </div>

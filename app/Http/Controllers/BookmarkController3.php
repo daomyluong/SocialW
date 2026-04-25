@@ -18,6 +18,7 @@ public function getFolders()
 
     // Lấy các tên thư mục duy nhất của user này
     $folders = Bookmark3::where('user_id', $userId)
+                        ->where('is_deleted', 0)
                         ->distinct()
                         ->pluck('folder_name');
     return response()->json($folders);
@@ -29,23 +30,31 @@ public function toggleBookmark(Request $request, $postId)
     $folderName = $request->input('folder_name', 'Tất cả');
 
     // Tìm xem bài này đã lưu chưa
-    $bookmark = Bookmark3::where('user_id', $userId)->where('post_id', $postId)->first();
-
+    $bookmark = Bookmark3::where('user_id', $userId)
+    ->where('post_id', $postId)
+    ->first();
     if ($bookmark) {
-        // Nếu đã tồn tại, cập nhật lại thư mục mới
-        $bookmark->delete();
-        return response()->json(['status' => 'removed']);
-    } else {
-        // Nếu chưa, tạo mới hoàn toàn
-        Bookmark3::create([
-            'user_id' => $userId,
-            'post_id' => $postId,
-            'folder_name' => $folderName,
-            'is_deleted' => 0
-        ]);
-        return response()->json(['status' => 'added']);
+    if ((int) $bookmark->is_deleted === 0) {
+    $bookmark->update(['is_deleted' => 1]);
+    return response()->json(['status' => 'removed']);
     }
-}
+
+    $bookmark->update([
+    'is_deleted' => 0,
+    'folder_name' => $folderName,
+    ]);
+    return response()->json(['status' => 'added']);
+    }
+
+    Bookmark3::create([
+    'user_id' => $userId,
+    'post_id' => $postId,
+    'folder_name' => $folderName,
+    'is_deleted' => 0,
+    ]);
+    return response()->json(['status' => 'added']);
+    }
+
 
 public function index(Request $request)
 {
@@ -54,11 +63,14 @@ public function index(Request $request)
     // 1. Lấy danh sách thư mục duy nhất (sidebar)
     $allFolders = Bookmark3::where('user_id', $userId)
                            ->whereNotNull('folder_name')
+                           ->where('is_deleted', 0)
                            ->distinct()
                            ->pluck('folder_name');
 
     // 2. Lấy bài viết dựa trên folder được chọn
-    $query = Bookmark3::where('user_id', $userId)->with('post.author','post.media');
+    $query = Bookmark3::where('user_id', $userId)
+                        ->where('is_deleted', 0)
+                        ->with('post.author','post.media');
     
     if ($request->has('folder') && $request->folder !== 'Tất cả') {
         $query->where('folder_name', $request->folder);
