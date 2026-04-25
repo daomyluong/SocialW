@@ -50,4 +50,32 @@ class Post extends Model
     public function isLikedBy(User $user): bool {
         return $this->likes()->where('user_id', $user->id)->exists();
     }
+
+    /**
+     * "Ống lọc" bài viết: Chỉ lấy bài chưa xóa và đúng quyền xem
+     */
+    public function scopeVisible($query)
+    {
+        $currentUserId = auth()->id();
+
+        return $query->where('is_deleted', 0)
+            ->where(function ($q) use ($currentUserId) {
+                // 1. Nếu là chủ bài viết: Thấy hết (kể cả bài Private)
+                $q->where('user_id', $currentUserId)
+                // 2. Nếu là bài Public: Ai cũng thấy
+                ->orWhere('visibility', 'public');
+                
+                if ($currentUserId) {
+                    // 3. Nếu là bài Follower: Chỉ những người đang theo dõi tác giả mới thấy
+                    $q->orWhere(function ($sub) use ($currentUserId) {
+                        $sub->where('visibility', 'follower')
+                            ->whereIn('user_id', function ($f) use ($currentUserId) {
+                                $f->select('following_user_id')
+                                  ->from('followers')
+                                  ->where('follower_user_id', $currentUserId);
+                            });
+                    });
+                }
+            });
+    }
 }

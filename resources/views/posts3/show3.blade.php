@@ -76,13 +76,15 @@
                     </div>
                 </div>
 
-                @if(Auth::id() == $comment->user_id || Auth::id() == 1)
+            @if(Auth::id() == $comment->user_id || Auth::id() == 1)
                 <form action="{{ route('comments.destroy', $comment->id) }}" method="POST" class="ms-2">
-                    @csrf
-                    @method('DELETE')
+                    @csrf @method('DELETE')
                     <button type="submit" class="btn btn-link p-0 text-danger" style="font-size: 12px; text-decoration: none;">Xóa</button>
                 </form>
-                @endif
+            @else
+                <button class="btn btn-link p-0 text-warning ms-2" style="font-size: 12px; text-decoration: none;" 
+                        onclick="openGeneralReportModal('comment', {{ $comment->id }})">Báo cáo</button>
+            @endif
             </div>
             @empty
             <p class="text-muted mb-0">Chưa có bình luận nào.</p>

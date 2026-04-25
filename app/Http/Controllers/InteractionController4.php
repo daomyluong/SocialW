@@ -252,4 +252,19 @@ class InteractionController4 extends Controller
     {
         return $this->like(request(), $post);
     }
+
+    public function report(Request $request)
+    {
+        \Illuminate\Support\Facades\DB::table('reports')->insert([
+            'reporter_user_id' => auth()->id(),
+            'reported_entity_type' => $request->type,
+            'reported_entity_id' => $request->id,
+            'reason' => $request->reason,
+            'additional_notes' => $request->notes,
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['success' => true]);
+    }
 }

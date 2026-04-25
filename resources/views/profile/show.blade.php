@@ -117,13 +117,19 @@
             Chỉnh sửa trang cá nhân
         </a>
         @else
-        <button type="button"
-            class="btn btn-sm follow-btn {{ $isFollowing ? 'btn-primary' : 'btn-outline-primary' }}"
-            data-user-id="{{ $user->id }}">
-            <span class="follow-text">
-                {{ $isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
-            </span>
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button"
+                class="btn btn-sm follow-btn {{ $isFollowing ? 'btn-primary' : 'btn-outline-primary' }}"
+                data-user-id="{{ $user->id }}">
+                <span class="follow-text">{{ $isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}</span>
+            </button>
+            
+            {{-- Nút Báo cáo Người dùng --}}
+            <button type="button" class="btn btn-sm btn-outline-warning fw-semibold" 
+                    onclick="openGeneralReportModal('user', {{ $user->id }})">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </button>
+        </div>
         @endif
 
         @endauth
@@ -135,88 +141,15 @@
         <div class="nav-item-threads" role="button">Album</div>
     </div>
 
-    <div class="mt-4">
+<div class="mt-4" id="profile-posts">
         @forelse($posts as $post)
-
-@php
-$isLiked = in_array((int) $post->id, $likedPostIds ?? [], true);
-$isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
-@endphp
-
-<div class="card post-card mb-3" id="post-{{ $post->id }}">
-    <div class="card-body">
-
-        {{-- HEADER --}}
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-                <img src="{{ $post->author?->avatar_url ? asset($post->author->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($post->author?->display_name) }}"
-                    class="rounded-circle" width="42" height="42">
-
-                <div>
-                    <div class="fw-bold">
-                        {{ $post->author?->display_name }}
-                    </div>
-                    <small class="text-muted">
-                        {{ optional($post->created_at)->diffForHumans() }}
-                    </small>
-                </div>
+            {{-- Nhúng giao diện post-card chuẩn (có sẵn nút Xóa/Sửa) vào đây --}}
+            @include('components.post-card', ['post' => $post])
+        @empty
+            <div class="text-muted text-center p-4">
+                Người dùng này chưa có bài đăng nào.
             </div>
-        </div>
-
-        {{-- CONTENT --}}
-        <p>{{ $post->content }}</p>
-
-        {{-- MEDIA --}}
-        @if($post->media->count() > 0)
-            @foreach($post->media as $mediaItem)
-
-                @if($mediaItem->type === 'video')
-                    <video controls class="w-100 mb-2">
-                        <source src="{{ asset('storage/' . $mediaItem->url) }}">
-                    </video>
-                @else
-                    <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid rounded mb-2">
-                @endif
-
-            @endforeach
-        @endif
-
-        {{-- ACTION: LIKE COMMENT SHARE --}}
-        <div class="d-flex gap-3 mt-2">
-
-            {{-- LIKE --}}
-            <form action="{{ route('posts.like', $post->id) }}" method="POST">
-                @csrf
-                <button type="submit" class="btn p-0">
-                    <i class="fa-{{ $isLiked ? 'solid text-danger' : 'regular' }} fa-heart"></i>
-                    {{ $post->like_count ?? 0 }}
-                </button>
-            </form>
-
-            {{-- COMMENT --}}
-            <a href="{{ route('posts3.show', $post->id) }}" class="btn p-0">
-                <i class="fa-regular fa-comment"></i>
-                {{ $post->comments_count ?? 0 }}
-            </a>
-
-            {{-- SHARE --}}
-            <form action="{{ route('posts.share', $post->id) }}" method="POST">
-                @csrf
-                <button type="submit" class="btn p-0">
-                    <i class="fa-regular fa-share-from-square"></i>
-                </button>
-            </form>
-
-        </div>
-
-    </div>
-</div>
-
-@empty
-<div class="text-muted text-center p-4">
-    Người dùng này chưa có bài viết nào.
-</div>
-@endforelse
+        @endforelse
     </div>
 
     <script>

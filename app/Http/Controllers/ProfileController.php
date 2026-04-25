@@ -20,27 +20,34 @@ class ProfileController extends Controller
 
     public function show(?int $id = null): View|RedirectResponse
     {
-        /** @var User|null $authUser */
         $authUser = Auth::user();
-
         $user = $id ? User::findOrFail($id) : Auth::user();
 
-        if (! $user) {
-            return redirect()->route('login');
-        }
+        if (!$user) return redirect()->route('login');
 
         $isOwnProfile = (bool) $authUser && (int) $authUser->id === (int) $user->id;
+        $currentUserId = Auth::id();
 
-        $postAuthorColumn = Schema::hasTable('posts') && Schema::hasColumn('posts', 'user_id')
-            ? 'user_id'
-            : 'user_id';
+        // --- SỬA TẠI ĐÂY: Dùng Model Post và Scope visible() để lấy bài viết ---
+        $postQuery = \App\Models\Post::query()
+            ->where('user_id', $user->id)
+            ->visible() // <--- Đây chính là "ống lọc" thần thánh
+            ->latest();
 
-        $postCount = Schema::hasTable('posts')
-            ? DB::table('posts')
-            ->where($postAuthorColumn, $user->id)
-            ->where('is_deleted', false)
-            ->count()
-            : 0;
+        // Lấy danh sách bài viết
+        $posts = $postQuery->with([
+                'author:id,username,display_name,avatar_url',
+                'media',
+                'comments' => function ($query) {
+                    $query->with('user:id,username,display_name,avatar_url')->latest()->take(5);
+                },
+            ])
+            ->withCount('comments')
+            ->get();
+
+        // Đếm bài viết: Bây giờ con số này sẽ luôn đúng với quyền hạn của người đang xem
+        $postCount = $postQuery->count(); 
+        // ----------------------------------------------------------------------
 
         $followingCount = $user->following_count ?? $user->following()->count();
         $followerCount = $user->follower_count ?? $user->followers()->count();
@@ -52,53 +59,14 @@ class ProfileController extends Controller
                 ->where('following_user_id', $user->id)
                 ->exists();
         }
-        $currentUserId = Auth::id();
 
-        // Lấy bài viết giống feed
-        $posts = \App\Models\Post::query()
-            ->where('user_id', $user->id)
-            ->where('is_deleted', 0)
-            ->with([
-                'author:id,username,display_name,avatar_url',
-                'media',
-                'comments' => function ($query) {
-                    $query->with('user:id,username,display_name,avatar_url')
-                        ->latest()
-                        ->take(5);
-                },
-            ])
-            ->withCount('comments')
-            ->latest()
-            ->get();
+        // Lấy Like và Bookmark (Giữ nguyên phần này của cậu)
+        $likedPostIds = $currentUserId ? DB::table('post_likes')->where('user_id', $currentUserId)->pluck('post_id')->map(fn($id) => (int)$id)->all() : [];
+        $bookmarkedPostIds = $currentUserId ? DB::table('bookmarks3')->where('user_id', $currentUserId)->pluck('post_id')->map(fn($id) => (int)$id)->all() : [];
 
-
-        // LIKE
-        $likedPostIds = [];
-        $bookmarkedPostIds = [];
-
-        if ($currentUserId) {
-            $likedPostIds = DB::table('post_likes')
-                ->where('user_id', $currentUserId)
-                ->pluck('post_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-
-            $bookmarkedPostIds = DB::table('bookmarks3')
-                ->where('user_id', $currentUserId)
-                ->pluck('post_id')
-                ->map(fn($id) => (int) $id)
-                ->all();
-        }
         return view('profile.show', compact(
-            'user',
-            'isOwnProfile',
-            'postCount',
-            'followingCount',
-            'followerCount',
-            'isFollowing',
-            'posts',
-            'likedPostIds',
-            'bookmarkedPostIds'
+            'user', 'isOwnProfile', 'postCount', 'followingCount', 'followerCount', 
+            'isFollowing', 'posts', 'likedPostIds', 'bookmarkedPostIds'
         ));
     }
 

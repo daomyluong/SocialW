@@ -45,7 +45,7 @@ class PostController3 extends Controller
     $post = new \App\Models\Post();
     $post->user_id = Auth::id() ?? 1;
     $post->content = $request->content;
-    $post->visibility = 'public';
+    $post->visibility = $request->input('visibility', 'public');
     $post->is_deleted = 0;
 
     $post->save(); 
@@ -143,60 +143,89 @@ class PostController3 extends Controller
             'is_edited' => 1
         ]);
 
-        // 3. Xử lý ảnh (Nếu người dùng có chọn ảnh mới)
+        // 3. XÓA ẢNH CŨ
+        if ($request->has('delete_images')) {
+            $imagesToDelete = $request->input('delete_images'); 
+            
+            if (in_array($post->media_id, $imagesToDelete)) {
+                $post->media_id = null; 
+                $post->save();          
+            }
+
+            foreach ($imagesToDelete as $mediaId) {
+                $media = Media::find($mediaId);
+                
+                if ($media) { 
+                    // Đổi sang xóa file trong Storage cho đồng bộ
+                    if (\Illuminate\Support\Facades\Storage::disk('public')->exists($media->url)) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($media->url);
+                    }
+                    $post->media()->detach($mediaId);
+                    $media->delete();
+                }
+            }
+            
+            if (is_null($post->media_id)) {
+                $firstRemainingMedia = $post->media()->first();
+                $post->media_id = $firstRemainingMedia ? $firstRemainingMedia->id : null;
+                $post->save();
+            }
+        }
+
+        // 4. LƯU THÊM ẢNH MỚI (Lưu vào Storage giống y hệt lúc Create)
         if ($request->hasFile('image')) {
-
-            // Tùy chọn: Xóa ảnh cũ nếu bạn muốn thay thế toàn bộ ảnh mới
-            // $post->media()->detach(); 
-
+            $newMediaIds = [];
             foreach ($request->file('image') as $file) {
-                // Tạo tên file duy nhất
-                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/posts'), $fileName);
+                // SỬA LẠI THÀNH STORE VÀO PUBLIC DISK
+                $path = $file->store('uploads/posts', 'public');
 
-                // Lưu vào bảng media
                 $media = Media::create([
                     'owner_user_id' => Auth::id(),
                     'type' => 'image',
-                    'url' => 'uploads/posts/' . $fileName,
-                    'filename' => $fileName,
+                    'url' => $path, // Lưu path chuẩn vào DB
+                    'filename' => basename($path),
                     'mime' => $file->getClientMimeType(),
                 ]);
+                $newMediaIds[] = $media->id;
+            }
 
-                // Gắn ảnh vào bài viết (bảng trung gian)
-                $post->media()->attach($media->id);
-
-                if (! $post->media_id) {
-                    $post->media_id = $media->id;
-                    $post->save();
+            if (!empty($newMediaIds)) {
+                $post->media()->syncWithoutDetaching($newMediaIds);
+                if (!$post->media_id) {
+                     $post->media_id = $newMediaIds[0];
+                     $post->save();
                 }
             }
         }
 
+        // 5. TƯƠNG TỰ CHO VIDEO
         if ($request->hasFile('video')) {
+            $newVideoIds = [];
             foreach ($request->file('video') as $file) {
-                $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/posts'), $fileName);
+                $path = $file->store('uploads/posts', 'public');
 
                 $media = Media::create([
                     'owner_user_id' => Auth::id(),
                     'type' => 'video',
-                    'url' => 'uploads/posts/' . $fileName,
-                    'filename' => $fileName,
+                    'url' => $path,
+                    'filename' => basename($path),
                     'mime' => $file->getClientMimeType(),
                 ]);
+                $newVideoIds[] = $media->id;
+            }
 
-                $post->media()->attach($media->id);
-
-                if (! $post->media_id) {
-                    $post->media_id = $media->id;
-                    $post->save();
+             if (!empty($newVideoIds)) {
+                $post->media()->syncWithoutDetaching($newVideoIds);
+                if (!$post->media_id) {
+                     $post->media_id = $newVideoIds[0];
+                     $post->save();
                 }
             }
         }
 
         return redirect()->route('posts3.myPosts')->with('success', 'Đã cập nhật bài viết thành công!');
     }
+
     public function index()
     {
         $currentUserId = Auth::id() ? (int) Auth::id() : null;
@@ -316,11 +345,32 @@ class PostController3 extends Controller
     }
     public function show($id)
     {
+        $currentUserId = Auth::id();
+        
         $post = \App\Models\Post::with([
             'author:id,username,display_name,avatar_url',
             'media',
             'comments.user:id,username,display_name,avatar_url',
         ])->findOrFail($id);
+
+        // KIỂM TRA QUYỀN TRUY CẬP
+        if ($post->visibility !== 'public' && $post->user_id !== $currentUserId) {
+            // Nếu là bài 'follower' thì kiểm tra xem người xem có đang follow tác giả không
+            if ($post->visibility === 'follower') {
+                $isFollowing = DB::table('followers')
+                    ->where('follower_user_id', $currentUserId)
+                    ->where('following_user_id', $post->user_id)
+                    ->exists();
+                
+                if (!$isFollowing) {
+                    abort(403, 'Bạn phải theo dõi người này mới xem được bài viết.');
+                }
+            } 
+            // Nếu là bài 'private' (và không phải chính chủ vì đã rẽ nhánh ở trên)
+            else if ($post->visibility === 'private') {
+                abort(403, 'Bài viết này ở chế độ riêng tư.');
+            }
+        }
 
         $stories = \App\Models\Story3::latest()->get();
 

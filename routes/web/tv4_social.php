@@ -14,4 +14,5 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/posts/{post}/share', [InteractionController4::class, 'share'])->name('posts.share');
     Route::post('/users/{user}/follow', [InteractionController4::class, 'toggleFollow'])->name('users.follow');
     Route::get('/suggestions', [HomeController4::class, 'allSuggestions'])->name('users.suggestions');
+    Route::post('/report', [InteractionController4::class, 'report'])->name('report.store');
 });

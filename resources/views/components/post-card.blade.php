@@ -11,14 +11,61 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
                 <img src="{{ $post->author?->avatar_url ? asset($post->author->avatar_url) : 'https://ui-avatars.com/api/?name='.urlencode($post->author?->display_name ?? $post->author?->username ?? ('User '.$post->user_id)).'&background=random' }}" class="rounded-circle" width="42" height="42" alt="avatar">
                 <div>
                     <div class="fw-bold">{{ $post->author?->display_name ?? $post->author?->username ?? ('User #'.$post->user_id) }}</div>
-                    <small class="text-muted">{{ optional($post->created_at)->diffForHumans() }}</small>
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">{{ optional($post->created_at)->diffForHumans() }}</small>
+                        <small class="text-muted" title="Trạng thái hiển thị">
+                            @if(($post->visibility ?? 'public') === 'public')
+                                <i class="fa-solid fa-earth-americas" style="font-size: 0.8rem;"></i>
+                            @elseif(($post->visibility ?? 'public') === 'follower')
+                                <i class="fa-solid fa-user-group" style="font-size: 0.8rem;"></i>
+                            @else
+                                <i class="fa-solid fa-lock" style="font-size: 0.8rem;"></i>
+                            @endif
+                        </small>
+                    </div>
                 </div>
             </div>
+            
             @auth
-            @php $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true); @endphp
-            <button type="button" class="btn btn-sm bookmark-btn" data-post-id="{{ $post->id }}">
-                <i class="fa-{{ $isBookmarked ? 'solid text-primary' : 'regular text-secondary' }} fa-bookmark"></i>
-            </button>
+            <div class="d-flex align-items-center gap-1">
+                @php $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true); @endphp
+                <button type="button" class="btn btn-sm bookmark-btn border-0" data-post-id="{{ $post->id }}">
+                    <i class="fa-{{ $isBookmarked ? 'solid text-primary' : 'regular text-secondary' }} fa-bookmark"></i>
+                </button>
+
+        {{-- Nút 3 chấm luôn hiện cho tất cả người dùng đã đăng nhập --}}
+                <div class="dropdown">
+                    <button class="btn btn-sm border-0 text-secondary" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        @if(auth()->id() === $post->user_id)
+                            {{-- Nếu là chủ bài viết: Hiện Sửa/Xóa --}}
+                            <li>
+                                <a class="dropdown-item" href="{{ route('posts3.edit', $post->id) }}">
+                                    <i class="fa-solid fa-pen me-2 text-primary"></i> Sửa bài viết
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ route('posts3.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa không?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                        <i class="fa-solid fa-trash me-2"></i> Xóa bài viết
+                                    </button>
+                                </form>
+                            </li>
+                        @else
+                            {{-- Nếu là người khác: Hiện Báo cáo --}}
+                            <li>
+                                <button class="dropdown-item text-warning" onclick="openGeneralReportModal('post', {{ $post->id }})">
+                                    <i class="fa-solid fa-flag me-2"></i> Báo cáo bài viết
+                                </button>
+                            </li>
+                        @endif
+                    </ul>
+                </div>
+            </div>
             @endauth
         </div>
 
@@ -38,12 +85,12 @@ $isBookmarked = in_array((int) $post->id, $bookmarkedPostIds ?? [], true);
             @if(($mediaItem->type ?? '') === 'video')
             <div class="rounded-3 overflow-hidden border">
                 <video controls class="w-100" style="max-height: 460px; background: #000;">
-                    <source src="{{ asset('storage/' . $mediaItem->url) }}" type="{{ $mediaItem->mime ?? 'video/mp4' }}">
+                    <source src="{{ asset($mediaItem->url) }}" type="{{ $mediaItem->mime ?? 'video/mp4' }}">
                 </video>
             </div>
             @else
             <div class="rounded-3 overflow-hidden border">
-                <img src="{{ asset('storage/' . $mediaItem->url) }}" class="img-fluid w-100" alt="media">
+                <img src="{{ (Str::startsWith($mediaItem->url, 'uploads/') && file_exists(public_path($mediaItem->url))) ? asset($mediaItem->url) : asset('storage/' . $mediaItem->url) }}" class="img-fluid w-100" alt="media">
             </div>
             @endif
             @endforeach

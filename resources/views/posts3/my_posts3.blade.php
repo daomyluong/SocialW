@@ -30,11 +30,14 @@
                         </div>
                         <div>
                             <span class="fw-bold d-block">{{ Auth::user()->display_name ?? 'Đao'}}</span>
-                            <small class="text-muted">
+                            <small class="text-muted" title="Trạng thái hiển thị">
                                 {{ $post->created_at->diffForHumans() }} • 
-                                @if($post->visibility == 'public') <i class="fa-solid fa-earth-americas"></i>
-                                @elseif($post->visibility == 'friends') <i class="fa-solid fa-user-group"></i>
-                                @else <i class="fa-solid fa-lock"></i>
+                                @if(($post->visibility ?? 'public') === 'public')
+                                    <i class="fa-solid fa-earth-americas"></i>
+                                @elseif(($post->visibility ?? 'public') === 'follower')
+                                    <i class="fa-solid fa-user-group"></i>
+                                @else
+                                    <i class="fa-solid fa-lock"></i>
                                 @endif
                             </small>
                         </div>

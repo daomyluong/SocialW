@@ -226,6 +226,71 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @yield('scripts')
+
+    <div class="modal fade" id="generalReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="fw-bold mb-0">Báo cáo nội dung</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reportEntityType">
+                <input type="hidden" id="reportEntityId">
+                
+                <label class="small fw-bold text-muted mb-2">Lý do báo cáo:</label>
+                <select id="reportReason" class="form-select mb-3 shadow-sm border-0 bg-light" style="border-radius: 10px;">
+                    <option value="Trẻ em">Vấn đề liên quan đến người dưới 18 tuổi</option>
+                    <option value="Bắt nạt">Bắt nạt, quấy rối hoặc lăng mạ lạm dụng/ngược đãi</option>
+                    <option value="Tự hại">Tự tử hoặc tự hại bản thân</option>
+                    <option value="Bạo lực/Thù ghét">Nội dung mang tính bạo lực, thù ghét hoặc gây phiền dập</option>
+                    <option value="Hàng cấm">Bán hoặc quảng bá mặt hàng bị hạn chế</option>
+                    <option value="Người lớn">Nội dung người lớn</option>
+                    <option value="Sai sự thật">Thông tin sai sự thật, lừa đảo hoặc gian lận</option>
+                    <option value="Sở hữu trí tuệ">Quyền sở hữu trí tuệ</option>
+                    <option value="Không phù hợp">Tôi không muốn xem nội dung này</option>
+                    <option value="Khác">Lý do khác...</option>
+                </select>
+
+                <textarea id="reportNotes" class="form-control mb-3 shadow-sm border-0 bg-light" rows="3" placeholder="Chi tiết thêm (không bắt buộc)..." style="border-radius: 10px;"></textarea>
+                
+                <button class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="sendReportRequest()" style="border-radius: 10px;">Gửi báo cáo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openGeneralReportModal(type, id) {
+        document.getElementById('reportEntityType').value = type;
+        document.getElementById('reportEntityId').value = id;
+        new bootstrap.Modal(document.getElementById('generalReportModal')).show();
+    }
+
+    async function sendReportRequest() {
+        const type = document.getElementById('reportEntityType').value;
+        const id = document.getElementById('reportEntityId').value;
+        const reason = document.getElementById('reportReason').value;
+        const notes = document.getElementById('reportNotes').value;
+
+        const response = await fetch("{{ route('report.store') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ type, id, reason, notes })
+        });
+
+        if (response.ok) {
+            alert('Cảm ơn bạn! Báo cáo đã được gửi tới quản trị viên.');
+            location.reload();
+        } else {
+            alert('Có lỗi xảy ra, vui lòng thử lại.');
+        }
+    }
+</script>
 </body>
 
 </html>
