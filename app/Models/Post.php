@@ -23,6 +23,17 @@ class Post extends Model
         return ['is_deleted' => 'boolean', 'is_edited' => 'boolean'];
     }
 
+    protected static function booted()
+    {
+        static::addGlobalScope('visible_and_active', function ($builder) {
+            $builder->where('posts.is_deleted', 0)
+                    ->where(function ($query) {
+                        $query->whereNull('posts.status')
+                              ->orWhere('posts.status', '!=', 'hidden');
+                    });
+        });
+    }
+    
     // Quan hệ với User
     public function author(): BelongsTo {
         return $this->belongsTo(User::class, 'user_id');

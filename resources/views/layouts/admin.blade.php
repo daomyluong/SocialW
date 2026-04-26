@@ -119,7 +119,7 @@
             </button>
             
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                <li><a class="dropdown-item py-2" href="{{ route('admin.dashboard') }}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ Admin</a></li>
+                <li><a class="dropdown-item py-2" href="{{ route('profile.show', Auth::id()) }}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ Admin</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form action="{{ route('logout') }}" method="POST">

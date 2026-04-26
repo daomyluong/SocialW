@@ -46,8 +46,8 @@ class LoginRequest extends FormRequest
         $password = (string) $this->input('password');
 
         $credentials = filter_var($login, FILTER_VALIDATE_EMAIL)
-            ? ['email' => mb_strtolower($login), 'password' => $password]
-            : ['username' => $login, 'password' => $password];
+            ? ['email' => mb_strtolower($login), 'password' => $password, 'is_active' => 1]
+            : ['username' => $login, 'password' => $password, 'is_active' => 1];
 
         if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

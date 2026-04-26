@@ -18,6 +18,17 @@ class Comment4 extends Model
         'is_deleted',
     ];
 
+    protected static function booted()
+    {
+        static::addGlobalScope('visible_and_active', function ($builder) {
+            $builder->where('comments.is_deleted', 0)
+                    ->where(function ($query) {
+                        $query->whereNull('comments.status')
+                              ->orWhere('comments.status', '!=', 'hidden');
+                    });
+        });
+    }
+    
     public function author()
     {
         return $this->belongsTo(User::class, 'user_id');

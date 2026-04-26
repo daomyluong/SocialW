@@ -335,6 +335,21 @@
     .btn-role-save:hover {
         background: rgba(79, 172, 254, 0.2);
     }
+
+    .btn-delete-soft {
+        border-radius: 999px;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+        background: rgba(244, 63, 94, 0.1);
+        color: #be123c;
+        font-weight: 700;
+        padding: 0.56rem 1.1rem;
+        transition: 0.2s;
+    }
+
+    .btn-delete-soft:hover { 
+        background: rgba(244, 63, 94, 0.16); 
+        color: #9f1239; 
+    }
 </style>
 
 
@@ -506,7 +521,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold text-muted mb-0">THÔNG TIN CHI TIẾT</h6>
                                 <a href="{{ url('/profile/' . $user->id) }}" target="_blank" class="btn-action-soft">
-                                    <i class="fa-solid fa-up-right-from-square me-1"></i> Link Profile gốc
+                                    <i class="fa-solid fa-up-right-from-square me-1"></i> Trang cá nhân
                                 </a>
                             </div>
 
@@ -544,7 +559,7 @@
                             <div class="modal-panel-soft p-4" style="max-height: 100%; min-height: 420px; overflow-y: auto;">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold text-muted mb-0">
-                                    VI PHẠM GẦN ĐÂY 
+                                    DANH SÁCH BÁO CÁO
                                     <span class="badge bg-danger ms-1 rounded-pill">{{ $user->total_violations ?? 0 }}</span>
                                 </h6>
                                 @if(($user->total_violations ?? 0) > 0)
@@ -555,11 +570,28 @@
                                 @endif
                             </div>
                             @forelse($user->recent_violations as $violation)
+                                @php
+                                    $reasonMap = [
+                                        'Trẻ em'           => 'Vấn đề liên quan đến người dưới 18 tuổi',
+                                        'Quấy rối'         => 'Bắt nạt, quấy rối hoặc lăng mạ/lạm dụng/ngược đãi',
+                                        'Tự tử'            => 'Tự tử hoặc tự hại bản thân',
+                                        'Bạo lực/Thù ghét' => 'Nội dung mang tính bạo lực, thù ghét hoặc gây phiền toái',
+                                        'Hàng cấm'         => 'Bán hoặc quảng bá mặt hàng bị hạn chế',
+                                        'Nhạy cảm'         => 'Nội dung người lớn',
+                                        'Sai sự thật'      => 'Thông tin sai sự thật, lừa đảo hoặc gian lận',
+                                        'Sở hữu trí tuệ'   => 'Quyền sở hữu trí tuệ',
+                                        'Spam'             => 'Tôi không muốn xem nội dung này / Spam',
+                                        'Khác'             => 'Lý do khác...'
+                                    ];
+                                    $displayReason = $reasonMap[$violation->reason] ?? $violation->reason;
+                                @endphp
+
                                 {{-- Bọc thẻ a để bấm vào bay sang trang report, nhảy tới đúng ID đó --}}
                                 <a href="{{ route('admin.reports.index') }}?highlight_id={{ $violation->id }}#report-row-{{ $violation->id }}" class="text-decoration-none text-dark d-block">
                                     <div class="violation-card mb-3" style="transition: 0.2s;">
                                         <div class="d-flex align-items-center mb-1">
-                                            <span class="fw-bold" style="font-size: 0.85rem;">{{ $violation->reason }}</span>
+                                            {{-- Đổi $violation->reason thành $displayReason ở đây --}}
+                                            <span class="fw-bold" style="font-size: 0.85rem;">{{ $displayReason }}</span>
                                             <small class="text-muted ms-auto" style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($violation->created_at)->diffForHumans() }}</small>
                                         </div>
                                         <div>
@@ -603,9 +635,9 @@
                         </form>
 
                         {{-- Form Xóa mềm --}}
-                        <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mềm tài khoản này không?');">
+                        <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mềm tài khoản này?');">
                             @csrf
-                            <button type="submit" class="btn btn-action-soft">Xóa mềm</button>
+                            <button type="submit" class="btn btn-delete-soft">Xóa mềm</button>
                         </form>
                     </div>
                 </div>

@@ -131,18 +131,9 @@
     }
 
 
-    .badge-status-clean {
-        background-color: #f0fdfa;
-        color: #0f766e;
-        border: 1px solid var(--accent-teal);
-    }
-
-
-    .badge-status-intervened {
-        background-color: #fff1f2;
-        color: #be123c;
-        border: 1px solid var(--accent-coral);
-    }
+    .badge-report-pending { background-color: #fffbeb; color: #d97706; border: 1px solid #fddb92; }
+    .badge-report-resolved { background-color: #f0fdfa; color: #0f766e; border: 1px solid #00f2fe; }
+    .badge-report-dismissed { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
 
 
     .admin-modal .modal-dialog {
@@ -343,6 +334,11 @@
         border: 1px solid var(--accent-teal);
     }
 
+    .badge-visibility-follower {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe; 
+    }
 
     .badge-visibility-private {
         background: #fef9e7;
@@ -369,6 +365,7 @@
                 <select name="visibility" class="form-select filter-pill w-100">
                     <option value="">Chế độ đăng</option>
                     <option value="public" {{ request('visibility') == 'public' ? 'selected' : '' }}>Công khai</option>
+                    <option value="follower" {{ request('visibility') == 'follower' ? 'selected' : '' }}>Người theo dõi</option>
                     <option value="private" {{ request('visibility') == 'private' ? 'selected' : '' }}>Riêng tư</option>
                 </select>
             </div>
@@ -417,7 +414,12 @@
                             <div class="d-flex align-items-center">
                                 <img src="https://ui-avatars.com/api/?name={{ urlencode($post->author_name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-2" width="36" height="36">
                                 <div>
-                                    <div class="fw-semibold text-dark">{{ $post->author_name }}</div>
+                                    <div class="fw-semibold text-dark">
+                                        {{ $post->author_name }}
+                                        @if((int) ($post->author_status ?? 1) === 0)
+                                            <i class="fa-solid fa-lock text-warning ms-1" title="Tài khoản đã bị khóa"></i>
+                                        @endif
+                                    </div>
                                     <small class="text-muted">USER #{{ $post->user_id }}</small>
                                 </div>
                             </div>
@@ -440,8 +442,16 @@
                         <td class="text-start">
                             <div class="fw-semibold text-dark" style="font-size: 0.86rem;">{{ Str::limit($post->content, 70) }}</div>
                             <small class="text-muted d-block">POST #{{ $post->id }}</small>
-                            <span class="badge {{ ($post->visibility ?? 'public') === 'public' ? 'badge-visibility-public' : 'badge-visibility-private' }} rounded-pill mt-1">
-                                {{ ($post->visibility ?? 'public') === 'public' ? 'Công khai' : 'Riêng tư' }}
+                            
+                            {{-- Tự động gọi class theo giá trị visibility --}}
+                            <span class="badge badge-visibility-{{ $post->visibility ?? 'public' }} rounded-pill mt-1">
+                                @if(($post->visibility ?? 'public') === 'public')
+                                    Công khai
+                                @elseif($post->visibility === 'follower')
+                                    Người theo dõi
+                                @else
+                                    Riêng tư
+                                @endif
                             </span>
                         </td>
 
@@ -461,7 +471,7 @@
 
 
                         <td class="text-center px-4">
-                            <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'HIỆN' : 'ẨN' }} bài viết này?');">
+                            <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'Hiện' : 'Ẩn' }} bài viết này?');">
                                 @csrf
                                 <button type="submit" class="btn btn-grad-soft rounded-pill px-3" title="{{ ($post->status ?? 'visible') === 'hidden' ? 'Hiện bài viết' : 'Ẩn bài viết' }}">
                                     {{-- Nếu đang ẩn (hidden) thì hiện con mắt mở (để bấm vào hiện lên). Nếu đang hiện thì icon mắt gạch chéo --}}
@@ -506,18 +516,8 @@
                             <div class="modal-panel-soft p-4 h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="fw-bold text-muted mb-0">
-                                        DANH SÁCH BÁO CÁO
-                                        @if($post->open_report_count > 0)
-                                            <span class="badge bg-danger ms-1 rounded-pill">{{ $post->open_report_count }} đơn mới</span>
-                                        @endif
-                                    </h6>
-                                    
-                                    @if(($post->total_violations ?? 0) > 0)
-                                        {{-- Nút này sẽ dẫn qua trang Report, tự động lọc theo ID của bài viết này --}}
-                                        <a href="{{ route('admin.reports.index', ['type' => 'post', 'search' => $post->id]) }}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px; font-size: 0.75rem;">
-                                            Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
-                                        </a>
-                                    @endif
+                                        NỘI DUNG BÀI VIẾT
+                                    </h6>  
                                 </div>
 
 
@@ -549,28 +549,60 @@
 
 
                                 <div class="report-item mb-3">
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center mb-2">
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode($post->author_name ?? 'User') }}&background=4facfe&color=fff" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
                                         <div>
-                                            <div class="fw-semibold text-dark">{{ $post->author_name }}</div>
+                                            <div class="fw-semibold text-dark">
+                                                {{ $post->author_name }}
+                                                @if((int) ($post->author_status ?? 1) === 0)
+                                                    <i class="fa-solid fa-lock text-warning ms-1" title="Tài khoản đã bị khóa"></i>
+                                                @endif
+                                            </div>
                                             <small class="text-muted">USER #{{ $post->user_id }}</small>
                                         </div>
                                     </div>
+                                    <div class="small text-muted">Tham gia: {{ \Carbon\Carbon::parse($post->author_created_at)->diffForHumans() }}</div>
                                 </div>
 
-                                <h6 class="fw-bold text-muted mb-2">DANH SÁCH BÁO CÁO</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                                    <h6 class="fw-bold text-muted mb-0">
+                                        DANH SÁCH BÁO CÁO
+                                        <span class="badge bg-danger ms-1 rounded-pill">{{ $post->total_violations ?? count($post->report_entries) }}</span>
+                                    </h6>
+                                    @if(($post->total_violations ?? 0) > 0)
+                                        <a href="{{ route('admin.reports.index', ['type' => 'post', 'search' => $post->id]) }}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px; font-size: 0.75rem;">
+                                            Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
+                                        </a>
+                                    @endif
+                                </div>
                                 @forelse($post->report_entries as $entry)
+                                    @php
+                                        $reasonMap = [
+                                            'Trẻ em'           => 'Vấn đề liên quan đến người dưới 18 tuổi',
+                                            'Quấy rối'         => 'Bắt nạt, quấy rối hoặc lăng mạ/lạm dụng/ngược đãi',
+                                            'Tự tử'            => 'Tự tử hoặc tự hại bản thân',
+                                            'Bạo lực/Thù ghét' => 'Nội dung mang tính bạo lực, thù ghét hoặc gây phiền toái',
+                                            'Hàng cấm'         => 'Bán hoặc quảng bá mặt hàng bị hạn chế',
+                                            'Nhạy cảm'         => 'Nội dung người lớn',
+                                            'Sai sự thật'      => 'Thông tin sai sự thật, lừa đảo hoặc gian lận',
+                                            'Sở hữu trí tuệ'   => 'Quyền sở hữu trí tuệ',
+                                            'Spam'             => 'Tôi không muốn xem nội dung này / Spam',
+                                            'Khác'             => 'Lý do khác...'
+                                        ];
+                                        $displayReason = $reasonMap[$entry->reason] ?? $entry->reason;
+                                    @endphp
                                     <a href="{{ route('admin.reports.index') }}?highlight_id={{ $entry->id }}#report-row-{{ $entry->id }}" class="text-decoration-none text-dark d-block">
                                         <div class="report-item mb-2" style="transition: 0.2s;">
                                             <div class="d-flex align-items-center gap-2 mb-1">
-                                                <span class="fw-semibold" style="font-size: 0.85rem;">{{ $entry->reason }}</span>
-                                                @if($entry->status === 'pending')
-                                                    <span class="badge badge-status-intervened rounded-pill">Chờ xử lý</span>
-                                                @elseif($entry->status === 'resolved')
-                                                    <span class="badge badge-status-clean rounded-pill">Đã xử lý</span>
-                                                @else
-                                                    <span class="badge border rounded-pill" style="border-color: #cbd5e1 !important; color: #64748b;">Đã bác bỏ</span>
-                                                @endif
+                                                {{-- Đổi $entry->reason thành $displayReason ở đây --}}
+                                                <span class="fw-semibold" style="font-size: 0.85rem;">{{ $displayReason }}</span>
+                                            @if($entry->status === 'pending')
+                                                <span class="badge badge-report-pending rounded-pill px-2">Chờ xử lý</span>
+                                            @elseif($entry->status === 'resolved')
+                                                <span class="badge badge-report-resolved rounded-pill px-2">Đã xử lý</span>
+                                            @else
+                                                <span class="badge badge-report-dismissed rounded-pill px-2">Đã bác bỏ</span>
+                                            @endif
                                             </div>
                                             <div class="small text-muted">Reporter: {{ $entry->reporter_name ?? 'Khách vãng lai' }}</div>
                                             @if(!empty($entry->additional_notes))
@@ -601,7 +633,7 @@
                         </form>
 
 
-                        <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'HIỆN' : 'ẨN' }} bài viết này?');">
+                        <form action="{{ route('admin.posts.toggle_visibility', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn {{ ($post->status ?? 'visible') === 'hidden' ? 'Hiện' : 'Ẩn' }} bài viết này?');">
                             @csrf
                             <button type="submit" class="btn btn-confirm-grad">
                                 <i class="fa-solid {{ ($post->status ?? 'visible') === 'hidden' ? 'fa-eye' : 'fa-eye-slash' }} me-1"></i> 
@@ -612,7 +644,7 @@
 
                         <form action="{{ route('admin.posts.delete', $post->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có muốn xóa mềm (cho vào thùng rác) bài viết này?');">
                             @csrf
-                            <button type="submit" class="btn btn-action-soft">Xóa mềm</button>
+                            <button type="submit" class="btn btn-delete-soft">Xóa mềm</button>
                         </form>
                     </div>
                 </div>

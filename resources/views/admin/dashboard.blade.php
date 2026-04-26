@@ -6,19 +6,95 @@
 
 @section('content')
 <style>
-    /* CSS làm mịn giao diện theo phong cách Pastel / Glass */
-    .card-pastel { border-radius: 1.25rem; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.03); transition: transform 0.2s; }
-    .card-pastel:hover { transform: translateY(-3px); }
-    .icon-box { width: 50px; height: 50px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-   
-    /* Bộ mã màu Thanh nhã */
-    .bg-soft-blue { background-color: #f0f4fd; color: #4b7bec; }
-    .bg-soft-green { background-color: #eafaf1; color: #20bf6b; }
-    .bg-soft-purple { background-color: #f6f0fb; color: #8854d0; }
-    .bg-soft-peach { background-color: #fdf4ec; color: #fa8231; }
-   
-    .table-custom th { border-bottom: none; color: #a4b0be; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
-    .table-custom td { vertical-align: middle; border-bottom: 1px solid #f1f2f6; }
+    :root {
+        --hlink-blue: #4facfe;
+        --hlink-green: #43e97b;
+        --hlink-bg: #f0f4f8;
+        --accent-teal: #00f2fe;
+        --accent-amber: #fddb92;
+        --soft-radius: 1.25rem;
+        --soft-shadow: 0 10px 30px rgba(79, 172, 254, 0.12);
+        --soft-shadow-hover: 0 15px 35px rgba(79, 172, 254, 0.22);
+    }
+
+    .card-pastel {
+        border: none;
+        border-radius: var(--soft-radius);
+        background: #ffffff;
+        box-shadow: var(--soft-shadow);
+        transition: 0.25s;
+    }
+
+    .card-pastel:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--soft-shadow-hover);
+    }
+
+    .icon-box {
+        width: 50px;
+        height: 50px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        border: 1px solid transparent;
+    }
+
+    .bg-soft-blue {
+        background-color: rgba(79, 172, 254, 0.12);
+        color: #2563eb;
+        border-color: rgba(79, 172, 254, 0.25);
+    }
+
+    .bg-soft-green {
+        background-color: rgba(67, 233, 123, 0.12);
+        color: #15803d;
+        border-color: rgba(67, 233, 123, 0.3);
+    }
+
+    .bg-soft-purple {
+        background-color: rgba(0, 242, 254, 0.12);
+        color: #0f766e;
+        border-color: rgba(0, 242, 254, 0.25);
+    }
+
+    .bg-soft-peach {
+        background-color: #fffbeb;
+        color: #d97706;
+        border-color: var(--accent-amber);
+    }
+
+    .table-custom {
+        font-size: 0.92rem;
+        color: #334155;
+    }
+
+    .table-custom th {
+        border-bottom: 2px solid #f1f5f9;
+        color: #94a3b8;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.95rem 1rem;
+        background: #fbfdff;
+    }
+
+    .table-custom td {
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        padding: 0.9rem 1rem;
+    }
+
+    .table-custom tbody tr {
+        transition: 0.2s;
+    }
+
+    .table-custom tbody tr:hover td {
+        background: #f8fbff;
+    }
 </style>
 
 

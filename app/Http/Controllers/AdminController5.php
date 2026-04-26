@@ -281,33 +281,6 @@ class AdminController5 extends Controller
         return redirect()->back()->with('status', 'Đã ' . strtolower($actionName) . ' bài viết thành công!');
     }
 
-
-    public function toggleCommentVisibility($id)
-    {
-        $comment = DB::table('comments')->where('id', $id)->first();
-        if (! $comment) {
-            return redirect()->back()->with('error', 'Không tìm thấy bình luận!');
-        }
-
-
-        $currentStatus = $comment->status ?? 'visible';
-        $newStatus = $currentStatus === 'hidden' ? 'visible' : 'hidden';
-
-
-        DB::table('comments')->where('id', $id)->update([
-            'status' => $newStatus,
-            'updated_at' => now(),
-        ]);
-
-
-        $actionName = $newStatus === 'hidden' ? 'Ẩn' : 'Hiện';
-        $this->storeAdminAction('Toggle Comment Visibility', $actionName . ' bình luận #' . $id);
-
-
-        return redirect()->back()->with('status', 'Đã ' . strtolower($actionName) . ' bình luận thành công!');
-    }
-
-
     // ===================================================
     // 4. XỬ LÝ XÓA MỀM TÀI KHOẢN
     // ===================================================
@@ -505,116 +478,138 @@ class AdminController5 extends Controller
 
 
     // ===================================================
-    // 5. TRANG QUẢN LÝ BÌNH LUẬN
+    // QUẢN LÝ BÌNH LUẬN (COMMENTS)
     // ===================================================
+
     public function manageComments(Request $request)
     {
-        // Nối 3 bảng: Bình luận + Người dùng + Bài viết
-        $postUserColumn = $this->postUserColumn();
-
+        // Join bảng users (lấy tác giả comment), join bảng posts (để lấy nội dung bài gốc và tìm kiếm)
         $query = DB::table('comments')
             ->join('users', 'comments.user_id', '=', 'users.id')
             ->join('posts', 'comments.post_id', '=', 'posts.id')
             ->select(
                 'comments.*',
+                'users.id as commenter_user_id',
                 'users.display_name as author_name',
                 'users.is_active as user_status',
                 'users.created_at as author_created_at',
-                'posts.content as post_content',
-                DB::raw($postUserColumn . ' as post_user_id'),
-                'comments.user_id as commenter_user_id'
-            );
+                'posts.content as post_content'
+            )
+            // Đếm số Like của comment bằng subquery để dễ sort
+            ->addSelect(DB::raw('(SELECT COUNT(*) FROM comment_likes WHERE comment_likes.comment_id = comments.id) as like_count'))
+            ->where('comments.is_deleted', 0); // Chỉ hiển thị bình luận chưa xóa mềm
 
-
-        // Tìm kiếm theo nội dung bình luận hoặc tên người bình luận
+        // 1. TÌM KIẾM (Nội dung comment, nội dung post gốc, hoặc tên người bình luận)
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('comments.content', 'like', '%' . $search . '%')
+                  ->orWhere('posts.content', 'like', '%' . $search . '%')
                   ->orWhere('users.display_name', 'like', '%' . $search . '%');
             });
         }
 
-
-        // Sắp xếp mới nhất và phân trang 15 dòng/trang cho gọn
-        $admin_comments = $query->orderBy('comments.created_at', 'desc')->paginate(15)->appends($request->all());
-
-
-        foreach ($admin_comments as $comment) {
-            $comment->previous_violation_count = 0;
-            $comment->report_entries = collect();
-            $comment->content_status = $comment->status ?? 'visible';
-            $comment->thread_comments = collect([
-                (object) [
-                    'id' => $comment->id,
-                    'content' => $comment->content,
-                    'created_at' => $comment->created_at,
-                    'author_name' => $comment->author_name,
-                ],
-            ]);
+        // 2. LỌC TRẠNG THÁI ẨN/HIỆN
+        if ($request->has('content_status') && $request->content_status != '') {
+            if ($request->content_status === 'visible') {
+                $query->where(function($q) {
+                    $q->whereNull('comments.status')->orWhere('comments.status', 'visible');
+                });
+            } else {
+                $query->where('comments.status', 'hidden');
+            }
         }
 
+        // 3. SẮP XẾP
+        $sort = $request->get('sort', 'latest');
+        if ($sort == 'hot') {
+            $query->orderBy('like_count', 'desc'); // Sắp xếp theo lượng Like nhiều nhất
+        } else {
+            $query->orderBy('comments.created_at', 'desc');
+        }
+
+        $admin_comments = $query->paginate(10)->appends($request->all());
+
+        foreach ($admin_comments as $comment) {
+            // Lấy media của bài viết gốc (để hiển thị trong Modal Xem xét)
+            $comment->post_media_type = null;
+            $comment->post_media_url = null;
+            $media = DB::table('media')
+                ->join('post_media', 'media.id', '=', 'post_media.media_id')
+                ->where('post_media.post_id', $comment->post_id)
+                ->select('media.*')
+                ->first();
+            if ($media) {
+                $comment->post_media_type = $media->type ?? 'image';
+                $comment->post_media_url = $media->url ?? null;
+            }
+
+            // LẤY DANH SÁCH BÁO CÁO CỦA BÌNH LUẬN (Chỉ lấy báo cáo thuộc về comment)
+            $comment->report_entries = DB::table('reports')
+                ->leftJoin('users as reporters', 'reports.reporter_user_id', '=', 'reporters.id')
+                ->where('reports.reported_entity_type', 'comment')
+                ->where('reports.reported_entity_id', $comment->id)
+                ->select('reports.*', 'reporters.display_name as reporter_name')
+                ->orderBy('reports.created_at', 'desc')
+                ->get();
+            
+            // Đếm báo cáo
+            $comment->open_report_count = $comment->report_entries->where('status', 'pending')->count();
+            $comment->total_violations = $comment->report_entries->count();
+        }
 
         return view('admin.comments.index', compact('admin_comments'));
     }
 
 
-    // Khóa nhanh người dùng khi thấy comment vi phạm
-    public function quickBanUser($userId)
-    {
-        DB::table('users')->where('id', $userId)->update([
-            'is_active' => 0,
-            'updated_at' => now(),
-        ]);
-
-
-        $this->storeAdminAction('Quick Ban', 'Khóa nhanh User ID #' . $userId . ' trong 24 giờ từ quản lý bình luận');
-
-
-        return redirect()->back()->with('status', 'Đã khóa tài khoản người dùng vi phạm!');
-    }
-
-
-    public function lockComment($id)
+    public function toggleCommentVisibility($id)
     {
         $comment = DB::table('comments')->where('id', $id)->first();
-        if (! $comment) {
-            return redirect()->back()->with('error', 'Không tìm thấy bình luận!');
-        }
+        if (! $comment) return redirect()->back()->with('error', 'Không tìm thấy bình luận!');
 
+        $currentStatus = $comment->status ?? 'visible';
+        $newStatus = $currentStatus === 'hidden' ? 'visible' : 'hidden';
 
         DB::table('comments')->where('id', $id)->update([
-            'content' => 'Bình luận này đã bị khóa tạm thời do vi phạm tiêu chuẩn cộng đồng.',
+            'status' => $newStatus,
             'updated_at' => now(),
         ]);
 
+        // Tự động chuyển báo cáo thành "Đã xử lý" nếu ẩn bình luận
+        if ($newStatus === 'hidden') {
+            DB::table('reports')
+                ->where('reported_entity_type', 'comment')
+                ->where('reported_entity_id', $id)
+                ->where('status', 'pending')
+                ->update(['status' => 'resolved', 'updated_at' => now()]);
+        }
 
-        $this->storeAdminAction('Lock Comment', 'Khóa tạm thời bình luận #' . $id);
+        $actionName = $newStatus === 'hidden' ? 'Ẩn' : 'Hiện';
+        $this->storeAdminAction('Toggle Comment', $actionName . ' bình luận #' . $id);
 
-
-        return redirect()->back()->with('status', 'Đã khóa tạm thời bình luận.');
+        return redirect()->back()->with('status', 'Đã ' . mb_strtolower($actionName) . ' bình luận thành công!');
     }
 
 
     public function deleteComment($id)
     {
-        // Xóa cứng bình luận bay khỏi database luôn (vì đây thường là rác/spam)
-        DB::table('comments')->where('id', $id)->delete();
-
-
-        // Ghi nhật ký
-        DB::table('admin_actions')->insert([
-            'admin_user_id' => 1,
-            'action_type' => 'Delete Comment',
-            'note' => 'Đã xóa 1 bình luận vi phạm (ID: #' . $id . ')',
-            'created_at' => now()
+        // Chỉ xóa mềm (is_deleted = 1)
+        DB::table('comments')->where('id', $id)->update([
+            'is_deleted' => 1,
+            'updated_at' => now(),
         ]);
 
+        // Xóa bình luận thì cũng chốt luôn đơn báo cáo
+        DB::table('reports')
+            ->where('reported_entity_type', 'comment')
+            ->where('reported_entity_id', $id)
+            ->where('status', 'pending')
+            ->update(['status' => 'resolved', 'updated_at' => now()]);
 
-        return redirect()->back()->with('status', 'Đã dọn dẹp bình luận thành công!');
+        $this->storeAdminAction('Delete Comment', 'Xóa mềm bình luận ID: #' . $id);
+
+        return redirect()->back()->with('status', 'Đã xóa mềm bình luận thành công!');
     }
-
-
 
 
     // ===================================================
@@ -622,9 +617,7 @@ class AdminController5 extends Controller
     // ===================================================
     public function manageReports(Request $request)
     {
-        // 1. Khởi tạo truy vấn: Gộp nhóm theo Đối tượng bị report và Lý do
         $search = trim((string) $request->get('search', ''));
-
 
         $query = DB::table('reports as reports')
             ->select(
@@ -636,53 +629,33 @@ class AdminController5 extends Controller
                 DB::raw('MAX(reports.created_at) as latest_report_time')
             );
 
+        if ($search !== '') $query->where('reports.reason', 'like', '%' . $search . '%');
 
-        if ($search !== '') {
-            $query->where('reports.reason', 'like', '%' . $search . '%');
-        }
-
-
-        // Lọc theo Trạng thái (Mặc định là đang chờ xử lý)
         $status = $request->get('status', 'pending');
-        if ($status != 'all') {
-            $query->where('reports.status', $status);
-        }
+        if ($status != 'all') $query->where('reports.status', $status);
 
+        if ($request->has('type') && $request->type != '') $query->where('reports.reported_entity_type', $request->type);
+        if ($request->filled('reason')) $query->where('reports.reason', $request->reason);
 
-        // Lọc theo Loại đối tượng (Bài viết, Bình luận, User)
-        if ($request->has('type') && $request->type != '') {
-            $query->where('reports.reported_entity_type', $request->type);
-        }
-
-
-        // Lọc theo lý do
-        if ($request->filled('reason')) {
-            $query->where('reports.reason', $request->reason);
-        }
-
-
-        // 2. Sắp xếp: Mới nhất (latest) hoặc Nhiều báo cáo nhất (most)
         $sort = $request->get('sort', 'latest');
-        if ($sort == 'most') {
-            $query->orderBy('total_reports', 'desc');
-        } else {
-            $query->orderBy('latest_report_time', 'desc');
-        }
+        if ($sort == 'most') $query->orderBy('total_reports', 'desc');
+        else $query->orderBy('latest_report_time', 'desc');
 
-
-        // Phân trang 20 báo cáo/trang
-            $admin_reports = $query->groupBy('reports.id', 'reports.reported_entity_type', 'reports.reported_entity_id', 'reports.reason', 'reports.status')
-                                ->paginate(20)->appends($request->all());
-
-
-        // 3. Lấy dữ liệu chi tiết (Thumbnail/Avatar/Nội dung full/Danh sách người report)
-        $postUserColumn = $this->postUserColumn();
+        $admin_reports = $query->groupBy('reports.id', 'reports.reported_entity_type', 'reports.reported_entity_id', 'reports.reason', 'reports.status')
+                               ->paginate(20)->appends($request->all());
 
         foreach ($admin_reports as $report) {
             $report->full_content = '';
             $report->author_id = null;
+            $report->author_name = 'N/A';
+            $report->author_status = 1; 
+            $report->content_status = 'visible'; 
             $report->deep_link = '#';
 
+            $report->post_id = null;
+            $report->post_content = null;
+            $report->post_thumbnail = null; // Khởi tạo biến ảnh cho post gốc của comment
+            $report->post_is_video = false;
 
             if ($report->reported_entity_type == 'post') {
                 $post = DB::table('posts')->where('id', $report->reported_entity_id)->first();
@@ -690,42 +663,74 @@ class AdminController5 extends Controller
                 $report->full_content = $post ? $post->content : 'Nội dung không còn tồn tại trên hệ thống.';
                 $report->thumbnail = null;
                 $report->is_video = false;
+                $report->content_status = $post->status ?? 'visible';
 
-
-                if ($post && ! empty($post->media_id)) {
-                    $media = DB::table('media')->where('id', $post->media_id)->first();
+                if ($post) {
+                    // FIX: Lấy media qua bảng trung gian post_media
+                    $media = DB::table('media')
+                        ->join('post_media', 'media.id', '=', 'post_media.media_id')
+                        ->where('post_media.post_id', $post->id)
+                        ->select('media.*')
+                        ->first();
+                        
                     if ($media) {
-                        $report->thumbnail = ($media->type ?? '') === 'image' ? ($media->url ?? null) : null;
+                        $report->thumbnail = $media->url ?? null;
                         $report->is_video = ($media->type ?? '') === 'video';
                     }
                 }
 
-
                 $report->author_id = $post ? ($post->user_id ?? null) : null;
-                $report->deep_link = url('/post/' . $report->reported_entity_id); // Nhảy cóc đến bài viết
-            } elseif ($report->reported_entity_type == 'user') {
+                if ($post) $report->deep_link = route('post.show', ['id' => $report->reported_entity_id]);
+                
+            } 
+            elseif ($report->reported_entity_type == 'user') {
                 $user = DB::table('users')->where('id', $report->reported_entity_id)->first();
                 $report->display_name = $user->display_name ?? 'N/A';
                 $report->full_content = 'Trang cá nhân của: ' . ($user->display_name ?? 'N/A');
                 $report->thumbnail = "https://ui-avatars.com/api/?name=" . urlencode($report->display_name) . "&background=4facfe&color=fff";
                 $report->author_id = $report->reported_entity_id;
-                $report->deep_link = url('/profile/' . $report->reported_entity_id); // Nhảy cóc đến user
-            } else {
+                $report->deep_link = url('/profile/' . $report->reported_entity_id);
+            } 
+            else { // COMMENT
                 $comment = DB::table('comments')->where('id', $report->reported_entity_id)->first();
                 $report->display_name = $comment ? Str::limit($comment->content, 40) : 'Bình luận đã xóa';
                 $report->full_content = $comment ? $comment->content : 'Nội dung không còn tồn tại.';
                 $report->thumbnail = null;
-                $report->author_id = null;
+                $report->content_status = $comment->status ?? 'visible';
+                
                 if ($comment) {
-                    $report->author_id = $comment->user_id ?? $comment->user_id ?? null;
+                    $report->author_id = $comment->user_id ?? null;
+                    $report->deep_link = route('post.show', ['id' => $comment->post_id, 'focus_comment' => $report->reported_entity_id]);
+                    
+                    $report->post_id = $comment->post_id;
+                    $parentPost = DB::table('posts')->where('id', $comment->post_id)->first();
+                    
+                    if ($parentPost) {
+                        $report->post_content = $parentPost->content;
+                        
+                        // FIX: Lấy media qua bảng trung gian post_media
+                        $media = DB::table('media')
+                            ->join('post_media', 'media.id', '=', 'post_media.media_id')
+                            ->where('post_media.post_id', $parentPost->id)
+                            ->select('media.*')
+                            ->first();
+                            
+                        if ($media) {
+                            $report->post_thumbnail = $media->url ?? null;
+                            $report->post_is_video = ($media->type ?? '') === 'video';
+                        }
+                    }
                 }
-                $report->deep_link = $comment
-                    ? url('/post/' . $comment->post_id . '?focus_comment=' . $report->reported_entity_id . '#comment-' . $report->reported_entity_id)
-                    : '#'; // Nhảy cóc đến comment
             }
 
+            if ($report->author_id) {
+                $author = DB::table('users')->where('id', $report->author_id)->first();
+                if ($author) {
+                    $report->author_name = $author->display_name;
+                    $report->author_status = $author->is_active;
+                }
+            }
 
-            // Lấy danh sách những người đã report cái ID này với lý do này
             $report->reporters = DB::table('reports')
                 ->leftJoin('users', 'reports.reporter_user_id', '=', 'users.id')
                 ->where('reported_entity_type', $report->reported_entity_type)
@@ -736,11 +741,64 @@ class AdminController5 extends Controller
                 ->orderBy('reports.created_at', 'desc')
                 ->get();
         }
-       
+        
         return view('admin.reports.index', compact('admin_reports'));
     }
 
 
+    public function processReport(Request $request)
+    {
+        $entityType = $request->entity_type;
+        $entityId = $request->entity_id;
+        $reason = $request->reason;
+        $authorId = $request->author_id;
+        $action = $request->action;
+
+        if (!$entityType || !$entityId || !$action) return back()->with('error', 'Dữ liệu không hợp lệ.');
+
+        // 1. Cập nhật trạng thái đơn (Bác bỏ hoặc Xử lý)
+        if ($action == 'dismiss') {
+            DB::table('reports')->where('reported_entity_type', $entityType)->where('reported_entity_id', $entityId)->where('reason', $reason)
+                ->update(['status' => 'dismissed', 'updated_at' => now()]);
+            $actionLog = 'Bác bỏ đơn tố cáo';
+        } else {
+            DB::table('reports')->where('reported_entity_type', $entityType)->where('reported_entity_id', $entityId)->where('reason', $reason)
+                ->update(['status' => 'resolved', 'updated_at' => now()]);
+            $actionLog = 'Xử lý đơn tố cáo';
+        }
+
+        // 2. Thao tác lên nội dung (Ẩn/Hiện, Khóa/Mở, Xóa)
+        if ($action == 'toggle_hide' && in_array($entityType, ['post', 'comment'])) {
+            $table = $entityType == 'post' ? 'posts' : 'comments';
+            $entity = DB::table($table)->where('id', $entityId)->first();
+            if ($entity) {
+                $newStatus = ($entity->status ?? 'visible') === 'hidden' ? 'visible' : 'hidden';
+                DB::table($table)->where('id', $entityId)->update(['status' => $newStatus, 'updated_at' => now()]);
+                $actionLog = $newStatus === 'hidden' ? 'Ẩn nội dung' : 'Hiện nội dung';
+            }
+        } 
+        elseif ($action == 'delete' && in_array($entityType, ['post', 'comment'])) {
+            $table = $entityType == 'post' ? 'posts' : 'comments';
+            DB::table($table)->where('id', $entityId)->update(['is_deleted' => 1, 'updated_at' => now()]);
+            $actionLog = 'Xóa mềm nội dung vi phạm';
+        } 
+        elseif ($action == 'toggle_ban' && $authorId) {
+            $user = DB::table('users')->where('id', $authorId)->first();
+            if ($user) {
+                $newStatus = $user->is_active == 1 ? 0 : 1;
+                DB::table('users')->where('id', $authorId)->update(['is_active' => $newStatus, 'updated_at' => now()]);
+                $actionLog = $newStatus == 0 ? 'Khóa tài khoản' : 'Mở khóa tài khoản';
+            }
+        }
+
+        $this->storeAdminAction('Process Report', $actionLog . ' | Đối tượng: ' . strtoupper($entityType) . ' #' . $entityId . ' | Lý do: ' . $reason);
+
+        return back()->with('status', 'Đã thực hiện thao tác: ' . $actionLog);
+    }
+
+    // ===================================================
+    // HIỂN THỊ BÀI VIẾT GỐC NGOÀI TRANG CHỦ
+    // ===================================================
     public function showPost(Request $request, $id)
     {
         $post = DB::table('posts')
@@ -750,14 +808,11 @@ class AdminController5 extends Controller
             ->where('posts.is_deleted', 0)
             ->first();
 
-
         if (! $post) {
             return redirect()->route('home')->with('error', 'Bài viết không còn tồn tại.');
         }
 
-
         $focusCommentId = $request->integer('focus_comment');
-
 
         $comments = DB::table('comments')
             ->join('users', 'comments.user_id', '=', 'users.id')
@@ -773,84 +828,7 @@ class AdminController5 extends Controller
             ->orderBy('comments.created_at', 'desc')
             ->get();
 
-
         return view('post', compact('post', 'comments', 'focusCommentId'));
-    }
-
-
-    // ===================================================
-    // 6. XỬ LÝ BÁO CÁO (PROCESS REPORT)
-    // ===================================================
-    public function processReport(Request $request)
-    {
-        $entityType = $request->entity_type;
-        $entityId = $request->entity_id;
-        $reason = $request->reason;
-        $authorId = $request->author_id;
-        $action = $request->action;
-
-
-        // Validate input
-        if (!$entityType || !$entityId || !$action) {
-            return back()->with('error', 'Dữ liệu không hợp lệ.');
-        }
-
-
-        // Update all reports for this entity with this reason to resolved or dismissed
-        if ($action == 'dismiss') {
-            DB::table('reports')
-                ->where('reported_entity_type', $entityType)
-                ->where('reported_entity_id', $entityId)
-                ->where('reason', $reason)
-                ->update(['status' => 'dismissed', 'updated_at' => now()]);
-        } else {
-            DB::table('reports')
-                ->where('reported_entity_type', $entityType)
-                ->where('reported_entity_id', $entityId)
-                ->where('reason', $reason)
-                ->update(['status' => 'resolved', 'updated_at' => now()]);
-        }
-
-
-        // Perform action based on type
-        if ($action == 'hide') {
-            if ($entityType == 'post') {
-                DB::table('posts')->where('id', $entityId)->update([
-                    'content' => 'Nội dung này đã bị ẩn vì vi phạm quy định cộng đồng.',
-                    'updated_at' => now(),
-                ]);
-            } elseif ($entityType == 'comment') {
-                DB::table('comments')->where('id', $entityId)->update([
-                    'content' => 'Bình luận này đã bị ẩn vì vi phạm quy định cộng đồng.'
-                ]);
-            }
-        } elseif ($action == 'delete') {
-            if ($entityType == 'post') {
-                DB::table('posts')->where('id', $entityId)->delete();
-            } elseif ($entityType == 'comment') {
-                DB::table('comments')->where('id', $entityId)->delete();
-            } elseif ($entityType == 'user') {
-                // Soft delete user?
-                DB::table('users')->where('id', $entityId)->update(['is_active' => 0]);
-            }
-        } elseif ($action == 'ban') {
-            if ($authorId) {
-                DB::table('users')->where('id', $authorId)->update([
-                    'is_active' => 0,
-                    'updated_at' => now(),
-                ]);
-            }
-        }
-
-
-        $this->storeAdminAction(
-            'Process Report',
-            'Đã ' . ($action == 'dismiss' ? 'bác bỏ' : ($action == 'hide' ? 'ẩn nội dung' : ($action == 'delete' ? 'xóa nội dung' : 'khóa tài khoản 24h'))) .
-            ' đối tượng ' . $entityType . ' #' . $entityId . ' với lý do: ' . $reason
-        );
-
-
-        return back()->with('success', 'Đã xử lý báo cáo thành công.');
     }
 }
 
