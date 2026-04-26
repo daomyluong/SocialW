@@ -504,16 +504,20 @@
                     <div class="row g-0">
                         <div class="col-lg-8 pe-lg-3 mb-3 mb-lg-0">
                             <div class="modal-panel-soft p-4 h-100">
-                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                    <h6 class="fw-bold text-muted mb-0">NỘI DUNG</h6>
-                                    <div>
-                                        <span class="badge {{ ($post->visibility ?? 'public') === 'public' ? 'badge-visibility-public' : 'badge-visibility-private' }} rounded-pill px-3 py-2">
-                                            {{ ($post->visibility ?? 'public') === 'public' ? 'Công khai' : 'Riêng tư' }}
-                                        </span>
-                                        @if(($post->status ?? 'visible') === 'hidden')
-                                            <span class="badge bg-danger rounded-pill px-3 py-2 ms-2"><i class="fa-solid fa-eye-slash me-1"></i> Đang bị ẩn</span>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-muted mb-0">
+                                        DANH SÁCH BÁO CÁO
+                                        @if($post->open_report_count > 0)
+                                            <span class="badge bg-danger ms-1 rounded-pill">{{ $post->open_report_count }} đơn mới</span>
                                         @endif
-                                    </div>
+                                    </h6>
+                                    
+                                    @if(($post->total_violations ?? 0) > 0)
+                                        {{-- Nút này sẽ dẫn qua trang Report, tự động lọc theo ID của bài viết này --}}
+                                        <a href="{{ route('admin.reports.index', ['type' => 'post', 'search' => $post->id]) }}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px; font-size: 0.75rem;">
+                                            Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
+                                        </a>
+                                    @endif
                                 </div>
 
 

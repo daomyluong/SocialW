@@ -406,7 +406,7 @@ class AdminController5 extends Controller
 
             // Lấy danh sách Report giống trang User (Đã join với users để lấy tên người báo cáo)
             $post->report_entries = DB::table('reports')
-                ->leftJoin('users as reporters', 'reports.author_id', '=', 'reporters.id')
+                ->leftJoin('users as reporters', 'reports.reporter_user_id', '=', 'reporters.id')
                 ->where('reports.reported_entity_type', 'post')
                 ->where('reports.reported_entity_id', $post->id)
                 ->select(
